@@ -34,7 +34,7 @@
 #include "my_images.h"
 #include "pHSensor.h"
 #include "WiFi.h"
-#include <esp_task_wdt.h>
+//#include <esp_task_wdt.h>
 // Firebase config
 #define DATABASE_URL "smartgarden-86bab-default-rtdb.firebaseio.com"
 #define DATABASE_SECRET "BOj3P8OdeNNEPdyPZ8g4sTu0A4N9QUWjgnDKX6FR"
@@ -53,8 +53,11 @@
 #define LIGHT_THRES             500
 #define LIGHT_PIN               19
 #define TIMER_FREQ              2000
-#define TFT_BACKGROUND          0x0f1b
+#define TFT_BACKGROUND          0x0F1B
 #define WHITE                   0xFFFF
+#define DEFAULT_TXT_COLOR       0xC0D5
+#define DETAIL_TXT_COLOR        0xFA24
+#define DEBOUNCE_TIME             200
 ////////////////////////////////////////////////////////////////////////////////
 //                Phần khai báo module/Module Declaration Section             //    
 ////////////////////////////////////////////////////////////////////////////////
@@ -70,6 +73,7 @@ DHT dht(DHTPIN, DHTTYPE);
     .timeout_ms = 10000,  
     .trigger_panic = true
 };*/
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 int x, y = 0;
 TFT_eSPI tft = TFT_eSPI();
 int screenWidth = 320; 
@@ -105,63 +109,129 @@ unsigned long lastWaterLevelCheck = 0;
 unsigned long lastPHCheck = 0;
 unsigned long lastLightDetectCheck = 0;
 String path = "/";
-hw_timer_t* Firebase_timer;
+//hw_timer_t* Firebase_timer;
 Firebase Firebase(DATABASE_URL);
 bool pumpOn = false;
 bool lightOn = false;
-volatile SemaphoreHandle_t timerSemaphore;
-
+bool lightStateChanging = false;
+bool pumpStateChanging = false;
+volatile bool touchDetected = false;
+bool autoOn = false;
 ////////////////////////////////////////////////////////////////////////////////
 //           Task Functions Replaced with Timer-Based Functions               //
 ////////////////////////////////////////////////////////////////////////////////
 
 
+/*void IRAM_ATTR onTouchInterrupt() {
+  portENTER_CRITICAL_ISR(&mux);
+  //Serial.println("ISR Activated!");
+  touchDetected = true;
+  portEXIT_CRITICAL_ISR(&mux);
+}*/
+bool isIconTouched(int touchX, int touchY, int iconX, int iconY, int iconW, int iconH) {
+  return (touchX >= iconX && touchX <= (iconX + iconW) &&
+          touchY >= iconY && touchY <= (iconY + iconH));
+}
 
-/*void controlDevicesFromTouch() {
-  ts.read();
-  if (ts.isTouched && !touchProcessed) 
+bool isCircleTouched(int x_touch, int y_touch, int x_center, int y_center, int radius) {
+  int dx = x_touch - x_center;
+  int dy = y_touch - y_center;
+  return (dx * dx + dy * dy <= radius * radius);  // Kiểm tra điều kiện
+}
+void controlLedFromTouch()
+{
+  lightStateChanging = true;
+  lightOn = !lightOn;
+  digitalWrite(LIGHT_PIN, lightOn ? HIGH : LOW);
+  touchDetected = false;
+  
+}
+void controlPumpFromTouch()
+{
+  pumpStateChanging = true;
+  autoOn = !autoOn;
+  Serial.print(("AUTO MODE DONE! Auto: "));
+  Serial.println(autoOn ? "ON" : "OFF");
+  Serial.println(("AUTO ON DONE!"));
+  //readAutoPump();
+  touchDetected = false;
+}
+void controlDevicesFromTouch() {
+  while (touchDetected)
   {
-    unsigned long currentTime = millis();
-    if (ts.isTouched && (currentTime - lastTouchTime > debounceDelay))
+    if (isIconTouched(cor_x, cor_y, 0, 52 * 4 + 1, 52, 52))
     {
-      lastTouchTime = currentTime;
- 
-      Serial.print("Touch: ");
-      Serial.print("  x: ");Serial.print(x);
-      Serial.print("  y: ");Serial.print(y);
-      Serial.println(' ');
-      if (cor_x < screenWidth / 2 && cor_y < screenHeight / 2) {
-        pumpOn = !pumpOn;
-        digitalWrite(PUMP_PIN, pumpOn ? HIGH : LOW);
-        Firebase.setBool("/controls/pump", pumpOn);
-        Serial.println("Pump Control");
-      } else if (cor_x >= screenWidth / 2 && cor_y < screenHeight / 2) {
-        lightOn = !lightOn;
-        digitalWrite(LIGHT_PIN, lightOn ? HIGH : LOW);
-        Firebase.setBool("/controls/light", lightOn);
-        Serial.println("LED Control");
-      } else {
-        Serial.println("Invalid touch point!");
+      lightStateChanging = true;
+      lightOn = !lightOn;
+      digitalWrite(LIGHT_PIN, lightOn ? HIGH : LOW);
+      touchDetected = false;
+      break;
+    }
+    else if (isIconTouched(cor_x, cor_y, 0, 52 * 3 + 1, 52, 52))
+    {
+      autoOn = !autoOn;
+      if (autoOn)
+      {
+        Serial.println(("AUTO ON!"));
+        touchDetected = false;
+        Serial.println(("AUTO ON DONE!"));
+        break;
+      }
+      else
+      {
+        Serial.println(("AUTO OFF!"));
+        touchDetected = false;
+        Serial.println(("AUTO OFF DONE!"));
+        break;
       }
     }
   }
-  if (!ts.isTouched) 
-  {
-    touchProcessed = false; // Cho phép xử lý chạm tiếp theo
+}
+void drawIcon(int x, int y, int height, int width, const uint16_t *icon) {
+  for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+          if (icon[i * width + j] != WHITE) { 
+              tft.drawPixel(x + j, y + i, icon[i * width + j]); 
+          }
+      }
   }
-  Serial.println("Devices Controlled from Touch");
-}*/
+}
 
+void clearIcon(int x, int y, int height, int width) {
+  for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+        tft.drawPixel(x + j, y + i, TFT_BACKGROUND); 
+      }
+  }
+}
 void fetchPumpState() {
+  if ((prevWaterLevel <= 1.0) && (autoOn))
+  {
+    pumpOn = true;
+    digitalWrite(PUMP_PIN, pumpOn ? HIGH : LOW);
+    Serial.printf("Pump state updated: %s\n", pumpOn ? "ON" : "OFF");
+    Firebase.setBool("/controls/pump", pumpOn);
+  }
+  else if ((prevWaterLevel > 2.5) && (autoOn))
+  {
+    pumpOn = false;
+    digitalWrite(PUMP_PIN, pumpOn ? HIGH : LOW);
+    Serial.printf("Pump state updated: %s\n", pumpOn ? "ON" : "OFF");
+    Firebase.setBool("/controls/pump", pumpOn);
+  }
+  else if (!autoOn)
+  {
     bool pumpState = Firebase.getBool("/controls/pump");
     if (pumpOn != pumpState) {
         pumpOn = pumpState;
         digitalWrite(PUMP_PIN, pumpOn ? HIGH : LOW);
         Serial.printf("Pump state updated: %s\n", pumpOn ? "ON" : "OFF");
     }
+  }
 }
 
 void fetchLightState() {
+    
     bool lightState = Firebase.getBool("/controls/light");
     if (lightOn != lightState) {
         lightOn = lightState;
@@ -205,102 +275,214 @@ void readLightDetect() {
     updateBoolSensorValue("/sensors/lightDetect", light_detect, prevLightDetect, "Light Detect: ", 54, 15 + 52 * 4);
     Serial.printf("Light Detect: %s\n", light_detect ? "True" : "False");
 }
+
+void readAutoPump()
+{
+  tft.fillRect(54, 15 + 52 * 5, 225, 20, TFT_BACKGROUND);
+  tft.setTextColor(DEFAULT_TXT_COLOR);
+  tft.setCursor(54, 15 + 52 * 5);
+  tft.print("Auto PUMP: ");
+  tft.setTextColor(DETAIL_TXT_COLOR);
+  tft.println(autoOn ? "ON" : "OFF");
+}
 void updateSensorValue(const char* path, float newValue, float& prevValue, const char* label, int x, int y) {
-    if (!isnan(newValue) && prevValue != newValue) {
+    //if (!isnan(newValue) && prevValue != newValue) {
       //if (Firebase.setFloat(fbdo, path, newValue)) 
       //if (Firebase.setFloat(path, newValue)) 
       //{
       tft.fillRect(x, y, 225, 20, TFT_BACKGROUND);
+      tft.setTextColor(DEFAULT_TXT_COLOR);
       tft.setCursor(x, y);
       tft.print(label);
+      tft.setTextColor(DETAIL_TXT_COLOR);
       tft.println(newValue);
       prevValue = newValue;
       //}
-    }
+    //}
 }
 
 void updateBoolSensorValue(const char* path, bool newValue, bool& prevValue, const char* label, int x, int y) {
-    if (prevValue != newValue) {
+    //if (prevValue != newValue) {
       //if (Firebase.setBool(path, newValue)) 
       //{
+      tft.setTextColor(DEFAULT_TXT_COLOR);
       tft.fillRect(x, y, 225, 20, TFT_BACKGROUND);
       tft.setCursor(x, y);
       tft.print(label);
+      tft.setTextColor(DETAIL_TXT_COLOR);
       tft.println(newValue ? "True" : "False");
       prevValue = newValue;
       //} 
-    } 
+    /*} 
     else {
+      tft.setTextColor(DEFAULT_TXT_COLOR);
       tft.fillRect(x, y, 225, 20, TFT_BACKGROUND);
       tft.setCursor(x, y);
       tft.print(label);
+      tft.setTextColor(DETAIL_TXT_COLOR);
       tft.println(prevValue ? "True" : "False");
-    }
+    }*/
 }
 void fetchSensor_Task(void *pvParameters)
 {
   while (true)
   {
+    //if (touchDetected)
+    //{
+      //Serial.println("Touch detected, performing control tasks...");
+      //controlDevicesFromTouch();;
+    //}
+    if (!touchDetected)
+    {
       Serial.print("Task fetchSensor_Task is running on core: ");
       Serial.println(xPortGetCoreID());
-
+      Serial.println("readAutoPUMP...");
+      readAutoPump();
       //Serial.println("ControlDevicesFromTouch...");
       //controlDevicesFromTouch();
+
       Serial.println("readTemperature...");
       readTemperature();
+
       Serial.println("readHumidity...");
       readHumidity();
+
       Serial.println("readWaterLevel...");
       readWaterLevel();
+
       Serial.println("readPHValue...");
       readPHValue();
+
       Serial.println("readLightDetect...");
       readLightDetect();
-      vTaskDelay(3000 / portTICK_PERIOD_MS); 
+
+    }
+    vTaskDelay(3000 / portTICK_PERIOD_MS); 
   }
 }
 void  fetchFirebase_Task(void *pvParameters)
 {
   while (1)
-  {
-    Serial.print("Task fetchFirebase_Task is running on core: ");
-    Serial.println(xPortGetCoreID());
-    Serial.println("fetchPumpState...");
-    fetchPumpState();
-    Serial.println("fetchLightState...");
-    fetchLightState();
-    switch (processFirebase)
+  { 
+    /*if (touchDetected)
     {
-      case 0:
-        Serial.println("readTemperature in Task...");
-        Firebase.setFloat("/sensors/temperature", prevTemperature);
-        processFirebase++;
-        break;
-      case 1:
-        Serial.println("readHumidity in Task...");
-        Firebase.setFloat("/sensors/humidity", prevHumidity);
-        processFirebase++;
-        break;
-      case 2:
-        Serial.println("readWaterLevel in Task...");
-        Firebase.setFloat("/sensors/waterLevel", prevWaterLevel);
-        processFirebase++;
-        break;
-      case 3:
-        Serial.println("readPHValue in Task...");
-        Firebase.setFloat("/sensors/phValue", prevPHValue);
-        processFirebase++;
-        break;
-      case 4:
-        Serial.println("readLightDetect in Task...");
-        Firebase.setFloat("/sensors/lightDetect", prevLightDetect);
-        processFirebase = 0;
-        break;
+      controlDevicesFromTouch();
+      touchDetected = false;
+    } */
+    if (!touchDetected)
+    {  
+      Serial.print("Task fetchFirebase_Task is running on core: ");
+      Serial.println(xPortGetCoreID());
+      if (!pumpStateChanging)
+      {
+        Serial.println("fetchPumpState...");
+        fetchPumpState();
+      }
+      else
+      {
+        Serial.println("Push PUMP State...");
+        //readAutoPump();
+        Firebase.setBool("/controls/auto_PUMP", autoOn);
+        fetchPumpState();
+        delay(10);
+        pumpStateChanging = false;
+      }
+
+      if (!lightStateChanging)
+      {
+        Serial.println("fetchLightState...");
+        fetchLightState();
+      }
+      else
+      {
+        Serial.println("Push LightState...");
+        Firebase.setBool("/controls/light", lightOn);
+        delay(10);
+        lightStateChanging = false;
+      }
+      switch (processFirebase)
+      {
+        case 0:
+          Serial.println("readTemperature in Task...");
+          Firebase.setFloat("/sensors/temperature", prevTemperature);
+          processFirebase++;
+          break;
+        case 1:
+          Serial.println("readHumidity in Task...");
+          Firebase.setFloat("/sensors/humidity", prevHumidity);
+          processFirebase++;
+          break;
+        case 2:
+          Serial.println("readWaterLevel in Task...");
+          Firebase.setFloat("/sensors/waterLevel", prevWaterLevel);
+          processFirebase++;
+          break;
+        case 3:
+          Serial.println("readPHValue in Task...");
+          Firebase.setFloat("/sensors/phValue", prevPHValue);
+          processFirebase++;
+          break;
+        case 4:
+          Serial.println("readLightDetect in Task...");
+          Firebase.setFloat("/sensors/lightDetect", prevLightDetect);
+          processFirebase = 0;
+          break;
+      }
     }
     vTaskDelay(50 / portTICK_PERIOD_MS);
   }
 }
+void checkTouch_Task(void *pvParameters) {
+  while (true) {
+    ts.read();  
 
+    if (ts.isTouched && !touchProcessed) {
+      unsigned long currentTime = millis();
+      if (currentTime - lastTouchTime > DEBOUNCE_TIME) {
+        lastTouchTime = currentTime;
+        touchDetected = true;
+        touchProcessed = true;
+        Serial.println("Touched");
+        cor_x = map(ts.points[0].x, min_x, 479, 0, width - 1);
+        cor_y = map(ts.points[0].y, min_y, 320, 0, height - 1);
+        Serial.print("Touched: (");
+        Serial.print(cor_x);
+        Serial.print(", ");
+        Serial.print(cor_y);
+        Serial.println(")");
+        if (isIconTouched(cor_x, cor_y, 0, 52 * 4 + 1, 52, 52))
+        {
+          Serial.println("Entering controlLedFromTouch");
+          //lightStateChanging = true;
+          controlLedFromTouch();
+        }
+        else if (isIconTouched(cor_x, cor_y, 0, 40, 52, 52))
+        {
+          Serial.println("Entering controlPumpFromTouch");
+          //pumpStateChanging = true;
+          controlPumpFromTouch();
+        }
+        else
+        {
+          Serial.println("Invalid Position!!!");
+        }
+        touchDetected = false;
+      }
+    }
+    if (!ts.isTouched)
+    {
+      touchProcessed = false;
+    }
+    /*if (lightStateChanging)
+      {
+        Serial.println("Push LightState...");
+        Firebase.setBool("/controls/light", lightOn);
+        delay(100);
+        lightStateChanging = false;
+      }*/
+    vTaskDelay(50 / portTICK_PERIOD_MS);  
+  }
+}
 /*void fetchState_Task(void *pvParameters)
 {
   esp_task_wdt_delete(xTaskGetCurrentTaskHandle());
@@ -358,27 +540,35 @@ void setup() {
   pinMode(PUMP_PIN, OUTPUT);
   pinMode(LIGHT_PIN, OUTPUT);
    // TFT
-  pinMode(TOUCH_FT6336_INT, INPUT);
-
+  /*pinMode(TOUCH_FT6336_INT, INPUT_PULLDOWN);
+  attachInterrupt(digitalPinToInterrupt(TOUCH_FT6336_INT), onTouchInterrupt, FALLING);*/
   tft.init();
   tft.setRotation(3);
 
   touch_init(tft.width(), tft.height(), tft.getRotation());
   tft.fillScreen(TFT_BACKGROUND);
-  tft.setTextColor(0xc0d5);
-  tft.setTextSize(2); // Đặt kích thước chữ
-
+  tft.setTextColor(DEFAULT_TXT_COLOR);
+  tft.setTextSize(1); // Đặt kích thước chữ
+  drawIcon(0, 0, 52, 52, Temperature_icon);
   tft.setCursor(54, 15);
   tft.print("Temp: --.--");
+  drawIcon(0, 53, 52, 52, Humid_icon);
   tft.setCursor(54, 15 + 52);
   tft.print("Humidity: --.--"); 
+  drawIcon(0, 52*2 + 1, 52, 52, Water_level_icon);
   tft.setCursor(54, 15 + 52*2);
   tft.print("Water Level: -.--");
+  drawIcon(0, 52 * 3 + 1, 52, 52, pH_icon);
   tft.setCursor(54, 15 + 52*3);
   tft.print("pH: --.--");
+  drawIcon(0, 52 * 4 + 1, 52, 52, light_on_icon);
   tft.setCursor(54, 15 + 52*4);
   tft.print("Light Detect: -----");
-  delay(500);
+  drawIcon(0, 52 * 5 + 1, 52, 52, pump_icon);
+  tft.setCursor(54, 15 + 52*5);
+  tft.print("Auto PUMP: -----");
+  //tft.fillCircle(240, 52 * 5 + 15, 22, TFT_BACKGROUND);
+  delay(10);
   fetchPumpState();
   fetchLightState();
   readTemperature();
@@ -386,38 +576,46 @@ void setup() {
   readWaterLevel();
   readPHValue();
   readLightDetect();
+  readAutoPump();
+  touchDetected = false;
   //timerSemaphore = xSemaphoreCreateBinary();
   //esp_task_wdt_init(&wdt_config);
-  BaseType_t result1 = xTaskCreate(
+  BaseType_t result1 = xTaskCreatePinnedToCore(
     fetchSensor_Task,        // Hàm thực hiện task
     "fetchSensorState",           // Tên task
     40000,                    // Kích thước stack (words)
     NULL,                     // Tham số truyền vào
     1,                        // Độ ưu tiên của task
-    &xfetchSensorTaskHandle      // Task handle
-    //0                        // Chạy trên core 1
+    &xfetchSensorTaskHandle,      // Task handle
+    0                        // Chạy trên core 1
   );
   if (result1 == pdPASS) {
     Serial.println("Task 1 created successfully.");
   } else {
     Serial.println("Task 1 creation failed.");
   }
-  delay(1000);
-  BaseType_t result2 = xTaskCreate(
+  delay(10);
+  BaseType_t result2 = xTaskCreatePinnedToCore(
     fetchFirebase_Task,        // Hàm thực hiện task
     "fetchState",           // Tên task
     40000,                    // Kích thước stack (words)
     NULL,                     // Tham số truyền vào
     1,                        // Độ ưu tiên của task
-    &xfetchStateTaskHandle      // Task handle
-    //0                       // Chạy trên core 0
+    &xfetchStateTaskHandle,      // Task handle
+    1                      // Chạy trên core 0
   );
   if (result2 == pdPASS) {
     Serial.println("Task 2 created successfully.");
   } else {
     Serial.println("Task 2 creation failed.");
   }
-  delay(1000);
+  BaseType_t result3 = xTaskCreate(checkTouch_Task, "checkTouchTask", 5120, NULL, 1, NULL);
+  if (result3 == pdPASS) {
+    Serial.println("Task 3 created successfully.");
+  } else {
+    Serial.println("Task 3 creation failed.");
+  }
+  delay(10);
 
 }
 
@@ -435,58 +633,10 @@ void setup() {
 ////////////////////////////////////////////////////////////////////////////////
 //                Hàm xử lý toàn cục/Processing Section                       //  
 ////////////////////////////////////////////////////////////////////////////////
-void drawIcon(int x, int y, int height, int width, const uint16_t *icon) {
-  for (int i = 0; i < height; i++) {
-      for (int j = 0; j < width; j++) {
-          if (icon[i * width + j] != WHITE) { 
-              tft.drawPixel(x + j, y + i, icon[i * width + j]); 
-          }
-      }
-  }
-}
+
 
 
 
 void loop() {
   vTaskDelete(NULL);
-  /*if (!isCollectingData)
-  {
-    isCollectingData = true;
-    Serial.println("fetchPumpState...");
-    fetchPumpState();
-    Serial.println("fetchLightState...");
-    fetchLightState();
-    isCollectingData = false;
-  }
-  if (!isCollectingData)
-  {
-    switch (processState)
-    {
-      case 0:
-        Serial.println("readTemperature...");
-        readTemperature();
-        processState = 1;
-        break;
-      case 1:
-        Serial.println("readHumidity...");
-        readHumidity();
-        processState = 2;
-        break;
-      case 2:
-        Serial.println("readWaterLevel...");
-        readWaterLevel();
-        processState = 3;
-        break;
-      case 3:
-        Serial.println("readPHValue...");
-        readPHValue();
-        processState = 4;
-        break;
-      case 4:
-        Serial.println("readLightDetect...");
-        readLightDetect();
-        processState = 0;
-        break;
-    }
-  }*/
 }
