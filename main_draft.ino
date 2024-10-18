@@ -39,8 +39,7 @@
 #define DATABASE_URL "smartgarden-86bab-default-rtdb.firebaseio.com"
 #define DATABASE_SECRET "BOj3P8OdeNNEPdyPZ8g4sTu0A4N9QUWjgnDKX6FR"
 #define API_KEY "AIzaSyCcmsIiBMejWivNKMthf5kWbzLKeTKJ2sw"
-#define WIFI_SSID "PhamNghia"
-#define WIFI_PASSWORD "244466666"
+
 
 #define DHTPIN                  4
 #define DHTTYPE               DHT11
@@ -73,7 +72,8 @@ DHT dht(DHTPIN, DHTTYPE);
     .timeout_ms = 10000,  
     .trigger_panic = true
 };*/
-portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+String WIFI_SSID = "PhamNghia";
+String WIFI_PASSWORD = "244466666";
 int x, y = 0;
 TFT_eSPI tft = TFT_eSPI();
 int screenWidth = 320; 
@@ -96,8 +96,8 @@ bool isCollectingDataFromFB = false;
 volatile unsigned long lastTouchInterruptTime = 0;
 volatile bool interruptFlag = false;
 bool isControlling = false;
-uint8_t cor_x;
-uint8_t cor_y;
+int cor_x = 0;
+int cor_y = 0;
 TaskHandle_t xfetchStateTaskHandle;
 TaskHandle_t xfetchSensorTaskHandle;
 // Flags for sensor reading intervals
@@ -117,6 +117,11 @@ bool lightStateChanging = false;
 bool pumpStateChanging = false;
 volatile bool touchDetected = false;
 bool autoOn = false;
+bool prev_wifiState = false;
+unsigned long lastCheckWifi = 0;
+unsigned long checkWifiInterval = 5000;
+unsigned long lastWifiCheck = 0;
+bool showSSID = true;
 ////////////////////////////////////////////////////////////////////////////////
 //           Task Functions Replaced with Timer-Based Functions               //
 ////////////////////////////////////////////////////////////////////////////////
@@ -128,6 +133,7 @@ bool autoOn = false;
   touchDetected = true;
   portEXIT_CRITICAL_ISR(&mux);
 }*/
+
 bool isIconTouched(int touchX, int touchY, int iconX, int iconY, int iconW, int iconH) {
   return (touchX >= iconX && touchX <= (iconX + iconW) &&
           touchY >= iconY && touchY <= (iconY + iconH));
@@ -360,19 +366,47 @@ void fetchSensor_Task(void *pvParameters)
     vTaskDelay(3000 / portTICK_PERIOD_MS); 
   }
 }
+void drawWifiIcon()
+{
+  bool wifiState = (WiFi.status() == WL_CONNECTED);
+  if (wifiState != prev_wifiState)
+  {
+    tft.fillRect(479 - 26, 0, 26, 26, TFT_BACKGROUND);
+    if (wifiState)
+    {
+      
+      drawIcon(479 - 26, 0, 26, 26, wifi_icon);
+    }
+    else
+    {
+      drawIcon(479 - 26, 0, 26, 26, nowifi_icon);
+    }
+  }
+  prev_wifiState = wifiState;
+}
+
 void  fetchFirebase_Task(void *pvParameters)
 {
   while (1)
   { 
+    //Serial.print("Task fetchFirebase_Task is running on core: ");
+    //Serial.println(xPortGetCoreID());
+    if (millis() - lastCheckWifi > checkWifiInterval) {
+      drawWifiIcon();
+      lastCheckWifi = millis();
+    }
+    /*Serial.print("Wifi State: ");
+    Serial.println(prev_wifiState);
+    Serial.print("Touch State: ");
+    Serial.println(touchDetected);   */
     /*if (touchDetected)
     {
       controlDevicesFromTouch();
       touchDetected = false;
     } */
-    if (!touchDetected)
+    if (!touchDetected && prev_wifiState)
     {  
-      Serial.print("Task fetchFirebase_Task is running on core: ");
-      Serial.println(xPortGetCoreID());
+
       if (!pumpStateChanging)
       {
         Serial.println("fetchPumpState...");
@@ -434,6 +468,7 @@ void  fetchFirebase_Task(void *pvParameters)
 }
 void checkTouch_Task(void *pvParameters) {
   while (true) {
+    uint8_t maxChars = 10;
     ts.read();  
 
     if (ts.isTouched && !touchProcessed) {
@@ -444,7 +479,7 @@ void checkTouch_Task(void *pvParameters) {
         touchProcessed = true;
         Serial.println("Touched");
         cor_x = map(ts.points[0].x, min_x, 479, 0, width - 1);
-        cor_y = map(ts.points[0].y, min_y, 320, 0, height - 1);
+        cor_y = map(ts.points[0].y, min_y, 319, 0, height - 1);
         Serial.print("Touched: (");
         Serial.print(cor_x);
         Serial.print(", ");
@@ -456,7 +491,7 @@ void checkTouch_Task(void *pvParameters) {
           //lightStateChanging = true;
           controlLedFromTouch();
         }
-        else if (isIconTouched(cor_x, cor_y, 0, 40, 52, 52))
+        else if (isIconTouched(cor_x, cor_y, 0, 52*5+1, 52, 52))
         {
           Serial.println("Entering controlPumpFromTouch");
           //pumpStateChanging = true;
@@ -466,6 +501,7 @@ void checkTouch_Task(void *pvParameters) {
         {
           Serial.println("Invalid Position!!!");
         }
+
         touchDetected = false;
       }
     }
@@ -510,43 +546,110 @@ void checkTouch_Task(void *pvParameters) {
 ////////////////////////////////////////////////////////////////////////////////
 void setup() {
   Serial.begin(115200);
-
+  tft.init();
+  tft.setRotation(3);
+  tft.fillScreen(TFT_WHITE);
+  drawIcon((480-67)/2, (320-86)/2, 86, 67, logo_icon);
+  delay(1500);
+  tft.fillScreen(TFT_BLACK);
+  delay(300);
+  tft.setTextSize(1);
   //pH
+  tft.setTextColor(TFT_WHITE);
+  tft.print("Initializing Touch...");
+  touch_init(tft.width(), tft.height(), tft.getRotation());
+  delay(100);
+  tft.println("Done!");
+  tft.println();
+  tft.print("Initializing pHSensor...");
   pHSensor.begin(); 
+  delay(100);
+  tft.println("Done!");
+  tft.println();
   //Light Sensor
+  tft.print("Initializing lightSensor...");
   lightSensor.begin();
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  delay(100);
+  tft.println("Done!");
+  tft.println();
+  tft.print("Initializing DHT...");
+  dht.begin();
+  delay(100);
+  tft.println("Done!");
+  tft.println();
+  tft.print("Initializing WIFI...");
+  WiFi.begin(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str());
   Serial.print("Connecting to WiFi...");
   uint8_t TryCount = 0;
   while (WiFi.status() != WL_CONNECTED) {
     TryCount++;
-    //WiFi.disconnect();
-    //WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     delay(1000);
-    /*if ( TryCount == 10 )
+    tft.print(".");
+    if ( TryCount == 15 )
     {
-      ESP.restart();
-    }*/
-    Serial.print(".");
-  }
-  Serial.println();
-  Serial.print("Connected with IP: ");
-  Serial.println(WiFi.localIP());
-  /*Firebase_timer = timerBegin(1000000);
-  timerAttachInterrupt(Firebase_timer, &fetchSensor_Task);
-  timerAlarm(Firebase_timer, 3000000, true, 0);*/
-  dht.begin();
+      tft.println();
+      tft.println();
+      tft.print("Failed to Connect to WIFI: ");
+      tft.println(WIFI_SSID);
+      tft.println();
+      tft.println("Please check your WIFI connection! ");
+      tft.println();
+      tft.println("Tap the right half of the screen to skip, the left half to restart the ESP32");
+      Serial.print(".");
+      while(1)
+      {
+        ts.read();
+        if (ts.isTouched)
+        {
+          cor_x = map(ts.points[0].x, min_x, 479, 0, width - 1);
+          cor_y = map(ts.points[0].x, min_y, 319, 0, height - 1);
+          if (cor_x < 480/2)
+          {
+            ESP.restart();
+          }
+          else
+          {
+            tft.println();
+            tft.println("Ignoring... ");
+            delay(200);
+            break;
+          }
+        }
+      }
+      break;
+    }
 
+  }
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.println();
+    Serial.print("Connected with IP: ");
+    Serial.println(WiFi.localIP());
+    tft.println();
+    tft.println();
+    tft.print("Connected with IP: ");
+    tft.println(WiFi.localIP());
+  }
+  tft.println();
+  tft.print("Setting Up IO...");
   pinMode(PUMP_PIN, OUTPUT);
   pinMode(LIGHT_PIN, OUTPUT);
-   // TFT
-  /*pinMode(TOUCH_FT6336_INT, INPUT_PULLDOWN);
-  attachInterrupt(digitalPinToInterrupt(TOUCH_FT6336_INT), onTouchInterrupt, FALLING);*/
-  tft.init();
-  tft.setRotation(3);
-
-  touch_init(tft.width(), tft.height(), tft.getRotation());
+  delay(100);
+  tft.println("Done!");
+  tft.println();
+  delay(100);
+  tft.print("Initializing the Graphic...");
+  delay(2000);
+  /*fetchPumpState();
+  fetchLightState();
+  readTemperature();
+  readHumidity();
+  readWaterLevel();
+  readPHValue();
+  readLightDetect();
+  readAutoPump();*/
   tft.fillScreen(TFT_BACKGROUND);
+  delay(1000);
   tft.setTextColor(DEFAULT_TXT_COLOR);
   tft.setTextSize(1); // Đặt kích thước chữ
   drawIcon(0, 0, 52, 52, Temperature_icon);
@@ -567,19 +670,8 @@ void setup() {
   drawIcon(0, 52 * 5 + 1, 52, 52, pump_icon);
   tft.setCursor(54, 15 + 52*5);
   tft.print("Auto PUMP: -----");
-  //tft.fillCircle(240, 52 * 5 + 15, 22, TFT_BACKGROUND);
-  delay(10);
-  fetchPumpState();
-  fetchLightState();
-  readTemperature();
-  readHumidity();
-  readWaterLevel();
-  readPHValue();
-  readLightDetect();
-  readAutoPump();
-  touchDetected = false;
-  //timerSemaphore = xSemaphoreCreateBinary();
-  //esp_task_wdt_init(&wdt_config);
+  drawIcon(479 - 26, 0, 26, 26, nowifi_icon);
+  delay(2000);
   BaseType_t result1 = xTaskCreatePinnedToCore(
     fetchSensor_Task,        // Hàm thực hiện task
     "fetchSensorState",           // Tên task
@@ -616,7 +708,7 @@ void setup() {
     Serial.println("Task 3 creation failed.");
   }
   delay(10);
-
+  
 }
 
   //Firebase.setReadTimeout(fbdo, 2000);
