@@ -2,9 +2,9 @@
 
  #define TOUCH_FT6336
  #define TOUCH_FT6336_SCL 25
- #define TOUCH_FT6336_SDA 32
+ #define TOUCH_FT6336_SDA 22
  #define TOUCH_FT6336_INT -1
- #define TOUCH_FT6336_RST 33
+ #define TOUCH_FT6336_RST 19
  #define TOUCH_MAP_X1 0
  #define TOUCH_MAP_X2 320
  #define TOUCH_MAP_Y1 0

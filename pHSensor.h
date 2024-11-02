@@ -5,7 +5,7 @@
 
 class PHSensor {
 public:
-    PHSensor(uint8_t pin, float slope = -5.0, float offset = 0.0);
+    PHSensor(uint8_t pin, float slope = -0.23f, float offset = 0);
     void begin();
     float readPH();
 
