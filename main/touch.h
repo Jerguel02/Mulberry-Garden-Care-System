@@ -1,7 +1,7 @@
 #include <FT6336.h>
 
  #define TOUCH_FT6336
- #define TOUCH_FT6336_SCL 25
+ #define TOUCH_FT6336_SCL 0
  #define TOUCH_FT6336_SDA 22
  #define TOUCH_FT6336_INT -1
  #define TOUCH_FT6336_RST 19
