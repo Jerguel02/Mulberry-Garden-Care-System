@@ -22,5 +22,5 @@ float ACS712::readCurrent() {
     int adcValue = readAverageADC(10); 
     int adjustedValue = adcValue - _offsetValue;
     float voltage = (adjustedValue * _vref) / _adcMax;
-    return (abs(voltage / _sensitivity) >= 0.3) ? abs(voltage / _sensitivity) : 0;
+    return (abs(voltage / _sensitivity) >= 0.2) ? abs(voltage / _sensitivity) : 0;
 }

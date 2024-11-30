@@ -3,8 +3,8 @@
 *******Sơ đồ chân:                                                                                                            **
 **TFT Pin         CTP_INT    CTP_SDA   CTP_RTS   CTP_SCL   SDO(MISO)   LED   SCK   SDI(MOSI)   LCD_RS/DC    LCD_RST   LCD_CS  **
 **GPIO               X        22        19        0          12       X     14       13           2         27        15     **
-**Sensor: Light Sensor: Analog Pin:  26  |pH Sensor:     34  | DHT11: 4      | ACS1: 32      |ACS3: 25      |LIGHT_PIN: 16    **
-**                      Digital Pin: 5   |Water Sensor:  35  | PUMP_PIN: 21  | ACS2: 33      |MIST_PIN: 17                    **
+**Sensor: Light Sensor: Analog Pin:  26  |pH Sensor:     25  | DHT11: 4      | ACS1: 32      |ACS3: 33      |LIGHT_PIN: 16    **
+**                      Digital Pin: 5   |Water Sensor:  35  | PUMP_PIN: 17  | ACS2: 34      |MIST_PIN: 23                    **
 ********Mục lục mã nguồn:                                                                                                     **
 **Phần tiền xử lý                                                                                                             ** 
 **Phần khai báo module                                                                                                        **
@@ -44,14 +44,14 @@
 
 #define DHTPIN                  4
 #define DHTTYPE               DHT11
-#define PH_SENSOR_PIN           33
+#define PH_SENSOR_PIN           25
 #define WATER_LEVEL_SENSOR_PIN  35
 #define WATER_MAXIMUM_HEIGHT    4.0
 #define PUMP_PIN                17
 #define MIST_PIN                23
 #define ACS_PUMP                32
 #define ACS_MIST                34
-#define ACS_REGULAR             25
+#define ACS_REGULAR             33
 #define LIGHT_ANALOG_PIN        26
 #define LIGHT_DIGITAL_PIN        5
 #define LIGHT_THRES             500
@@ -61,7 +61,7 @@
 #define WHITE                   0xFFFF
 #define DEFAULT_TXT_COLOR       0xC0D5
 #define DETAIL_TXT_COLOR        0xFA24
-#define DEBOUNCE_TIME             200
+#define DEBOUNCE_TIME             2000
 ////////////////////////////////////////////////////////////////////////////////
 //                Phần khai báo module/Module Declaration Section             //    
 ////////////////////////////////////////////////////////////////////////////////
@@ -73,9 +73,9 @@ DHT dht(DHTPIN, DHTTYPE);
 /*CurrentSensor currentPUMP(ACS_PUMP, 1000.0, 2000.0, 3.3, 0, 0.066);
 CurrentSensor currentMIST(ACS_MIST, 1000.0, 2000.0, 3.3, 0, 0.066);
 CurrentSensor currentREGULAR(ACS_REGULAR, 1000.0, 2000.0, 3.3, 0, 0.066);*/
-ACS712 currentPUMP(ACS_PUMP, 3.3, 4095, 0.066);
-ACS712 currentMIST(ACS_MIST, 3.3, 4095, 0.066);
-ACS712 currentREGULAR(ACS_PUMP, 3.3, 4095, 0.066);
+ACS712 currentPUMP(ACS_PUMP, 5.0, 4095, 0.066);
+ACS712 currentMIST(ACS_MIST, 5.0, 4095, 0.066);
+ACS712 currentREGULAR(ACS_REGULAR, 5.0, 4095, 0.066);
 ////////////////////////////////////////////////////////////////////////////////
 //                Phần khai báo biến/Var Declaration Section                  //    
 ////////////////////////////////////////////////////////////////////////////////
@@ -99,6 +99,9 @@ float humidity = 0;
 float waterLevel = 0;
 float pHValue = 0;
 bool light_detect = false;
+bool lightOnChange = false;
+bool mistSprayOnChange = false;
+bool pumpOnChange = false;
 bool prevLightDetect = false;
 bool isCollectingData = false;
 uint8_t processState = 0;
@@ -133,6 +136,7 @@ bool autoPumpOn = false;
 bool autoMistSprayOn = false;
 bool autoLightOn = false;
 bool prev_wifiState = false;
+bool isTouching = false;
 unsigned long lastCheckWifi = 0;
 unsigned long checkWifiInterval = 5000;
 unsigned long lastWifiCheck = 0;
@@ -166,6 +170,7 @@ void controlLedFromTouch()
 {
   lightStateChanging = true;
   autoLightOn = !autoLightOn;
+  //Firebase.setBool("/controls/auto_LIGHT", autoLightOn);
   readAutoLight();
   touchDetected = false;
   
@@ -188,13 +193,15 @@ void controlMistSprayFromTouch()
 
 void drawIcon(int x, int y, int height, int width, const uint16_t *icon) {
   for (int i = 0; i < height; i++) {
-      for (int j = 0; j < width; j++) {
-          if (icon[i * width + j] != WHITE) { 
-              tft.drawPixel(x + j, y + i, icon[i * width + j]); 
-          }
+    const uint16_t *row = icon + i * width;  // Trỏ tới hàng của icon
+    for (int j = 0; j < width; j++) {
+      if (row[j] != WHITE) {  // Nếu không phải màu trắng
+        tft.drawPixel(x + j, y + i, row[j]);
       }
+    }
   }
 }
+
 
 void clearIcon(int x, int y, int height, int width) {
   for (int i = 0; i < height; i++) {
@@ -266,6 +273,7 @@ void fetchMistState() {
   {
     Serial.println("AUTO: turn mistSprayOn");
     mistSprayOn = true;
+    mistSprayOnChange = true;
     digitalWrite(MIST_PIN, LOW);
     mistStateInterface();
     if (prev_wifiState)
@@ -278,6 +286,7 @@ void fetchMistState() {
   {
     Serial.println("AUTO: turn mistSprayOff");
     mistSprayOn = false;
+    mistSprayOnChange = true;
     digitalWrite(MIST_PIN, HIGH);
     mistStateInterface();
     if (prev_wifiState)
@@ -317,6 +326,7 @@ void fetchLightState() {
   {
     Serial.println("AUTO: turn lightOff");
     lightOn = false;
+    lightOnChange = true;
     digitalWrite(LIGHT_PIN, HIGH);
     lightStateInterface();
     if (prev_wifiState)
@@ -329,6 +339,7 @@ void fetchLightState() {
   {
     Serial.println("AUTO: turn lightOn");
     lightOn = true;
+    lightOnChange = true;
     digitalWrite(LIGHT_PIN, LOW);
     lightStateInterface();
     if (prev_wifiState)
@@ -387,13 +398,16 @@ void manualMistSprayControlHandlingFunct()
   autoMistSprayOn = false;
   manualMistSprayControlHandling = true;
   mistSprayOn = !mistSprayOn;
+  mistSprayOnChange = true;
   digitalWrite(MIST_PIN, mistSprayOn ? LOW : HIGH);
   mistStateInterface();
 }
 
 void lightStateInterface()
 {
+  Serial.println("light StateInf");
   drawIcon(390, 180, 45, 45, lightOn ? switch_on_icon : switch_off_icon);
+  delay(1);
   readAutoLight();
 
   
@@ -404,11 +418,11 @@ void readACS()
   //currentPumpValue = currentPUMP.readCurrent();
   currentPumpValue = currentPUMP.readCurrent();
   //currentPumpValue = analogRead(ACS_PUMP);
-  updateSensorValue(currentPumpValue, prevCurrentPumpValue, "May bom 1: ", 250, 270);
+  updateSensorValue(currentPumpValue, prevCurrentPumpValue, "May bom: ", 250, 270);
   //currentRegularPumpValue = currentREGULAR.readCurrent();
   currentRegularPumpValue = currentREGULAR.readCurrent();
   //currentRegularPumpValue = analogRead(ACS_MIST);
-  updateSensorValue(currentRegularPumpValue, prevCurrentRegularPumpValue, "May bom 2: ", 250, 290);
+  updateSensorValue(currentRegularPumpValue, prevCurrentRegularPumpValue, "LED: ", 250, 290);
   //currentMistValue = currentMIST.readCurrent();
   currentMistValue = currentMIST.readCurrent();
   //currentMistValue = analogRead(ACS_MIST);
@@ -419,8 +433,10 @@ void readACS()
 void manualLightControlHandlingFunct()
 {
   autoLightOn = false;
+  //Firebase.setBool("/controls/auto_LIGHT", autoLightOn);
   manualLightControlHandling = true;
   lightOn = !lightOn;
+  lightOnChange = true;
   digitalWrite(LIGHT_PIN, lightOn ? LOW : HIGH);
   lightStateInterface();
 }
@@ -459,6 +475,13 @@ void readLightDetect() {
     light_detect = lightSensor.isLightDetected();
     updateBoolSensorValue(light_detect, prevLightDetect, "Anh sang: ", 310, 10);
     Serial.printf("Light Detect: %s\n", light_detect ? "True" : "False");
+    if (autoLightOn)
+    {
+      lightOn = light_detect ? false : true;
+      lightOnChange = true;
+      digitalWrite(LIGHT_PIN, lightOn ? LOW : HIGH);
+      lightStateInterface();
+    }
 }
 
 void readAutoPump()
@@ -473,6 +496,8 @@ void readAutoMist()
 
 void readAutoLight()
 {
+  Serial.println("Read Auto Light");
+  delay(1);
   drawIcon(390, 130, 45, 45, autoLightOn ? switch_on_icon : switch_off_icon);
 }
 
@@ -514,12 +539,14 @@ void fetchSensor_Task(void *pvParameters)
       Serial.println("readWaterLevel...");
       readWaterLevel();
 
-      Serial.println("readPHValue...");
-      readPHValue();
-
       Serial.println("readLightDetect...");
       readLightDetect();
+      
+      Serial.println("readPHValue...");
+      readPHValue();
+      
       readACS();
+
     }
     vTaskDelay(5000 / portTICK_PERIOD_MS); 
   }
@@ -551,8 +578,26 @@ void  fetchFirebase_Task(void *pvParameters)
       drawWifiIcon();
       lastCheckWifi = millis();
     }
-    if (!touchDetected)
-    { 
+    //if (!touchDetected)
+    //{ 
+      if (prev_wifiState)
+      {
+        if (lightOnChange)
+        {
+          Firebase.setBool("/controls/light", lightOn);
+          lightOnChange = false;
+        }
+        if (mistSprayOnChange)
+        {
+          Firebase.setBool("/controls/mistSpray", mistSprayOn);
+          mistSprayOnChange = false;
+        }
+        if (pumpOnChange)
+        {
+          Firebase.setBool("/controls/pump", pumpOn);
+          pumpOnChange = false;
+        }
+      }
       if (pumpStateChanging)
       {
         Firebase.setBool("/controls/auto_PUMP", autoPumpOn);
@@ -615,7 +660,7 @@ void  fetchFirebase_Task(void *pvParameters)
             break;
         }
       }
-    }
+    //}
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
@@ -626,7 +671,9 @@ void checkTouch_Task(void *pvParameters) {
     if (ts.isTouched && !touchProcessed) {
       unsigned long currentTime = millis();
       if (currentTime - lastTouchTime > DEBOUNCE_TIME) {
+        vTaskSuspend(xfetchStateTaskHandle);
         lastTouchTime = currentTime;
+        isTouching = true;
         touchDetected = true;
         touchProcessed = true;
         Serial.println("Touched");
@@ -646,6 +693,7 @@ void checkTouch_Task(void *pvParameters) {
         }
         else if (isIconTouched(cor_x, cor_y, 90, 180, 45, 45))
         {
+          pumpOnChange = true;
           Serial.println(("Control pump!"));
           manualPumpControlHandlingFunct();
           //pumpStateChanging = true;
@@ -657,6 +705,7 @@ void checkTouch_Task(void *pvParameters) {
         }
         else if (isIconTouched(cor_x, cor_y, 240, 180, 45, 45))
         {
+          mistSprayOnChange = true;
           Serial.println("Control mist spray");
           manualMistSprayControlHandlingFunct();
         }
@@ -667,6 +716,7 @@ void checkTouch_Task(void *pvParameters) {
         }
         else if (isIconTouched(cor_x, cor_y, 390, 180, 45, 45))
         {
+          lightOnChange = true;
           Serial.println("Manual light control");
           manualLightControlHandlingFunct();
         }
@@ -674,8 +724,9 @@ void checkTouch_Task(void *pvParameters) {
         {
           Serial.println("Invalid Position!!!");
         }
-
+        isTouching = false;
         touchDetected = false;
+        vTaskResume(xfetchStateTaskHandle);
       }
     }
     if (!ts.isTouched)
@@ -751,9 +802,9 @@ void drawFooter() {
   tft.setCursor(250, 250);
   tft.print("Dong dien: ");
   tft.setCursor(250, 270);
-  tft.print("May bom 1: ");
+  tft.print("May bom: ");
   tft.setCursor(250, 290);
-  tft.print("May bom 2: ");
+  tft.print("LED: ");
   tft.setCursor(250, 310);
   tft.print("Phun suong: ");
 }
@@ -847,6 +898,7 @@ void setup() {
     tft.print("Connected with IP: ");
     tft.println(WiFi.localIP());
   }
+  tft.println();
   tft.print("Calibrating Pump motor...");
   currentPUMP.calibrateOffset();
   tft.println("Done!");
@@ -885,7 +937,7 @@ void setup() {
   BaseType_t result1 = xTaskCreatePinnedToCore(
     fetchSensor_Task,       
     "fetchSensorState",          
-    40000,                    
+    30000,                    
     NULL,                    
     1,                       
     &xfetchSensorTaskHandle,     
@@ -900,7 +952,7 @@ void setup() {
   BaseType_t result2 = xTaskCreatePinnedToCore(
     fetchFirebase_Task,        
     "fetchState",          
-    50000,                   
+    60000,                   
     NULL,                   
     2,                        
     &xfetchStateTaskHandle,      
@@ -911,7 +963,7 @@ void setup() {
   } else {
     Serial.println("Task 2 creation failed.");
   }
-  BaseType_t result3 = xTaskCreate(checkTouch_Task, "checkTouchTask", 8000, NULL, 1, NULL);
+  BaseType_t result3 = xTaskCreate(checkTouch_Task, "checkTouchTask", 5000, NULL, 1, NULL);
   if (result3 == pdPASS) {
     Serial.println("Task 3 created successfully.");
   } else {

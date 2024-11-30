@@ -1,0 +1,162 @@
+<!-- about -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vườn trồng dâu tằm tự động</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <div class="about">
+    <a
+      class="bg_links social portfolio"
+      href="https://www.rafaelalucas.com/dailyui"
+      target="_blank"
+    >
+      <span class="icon"></span>
+    </a>
+    <a
+      class="bg_links social dribbble"
+      href="https://dribbble.com/rafaelalucas"
+      target="_blank"
+    >
+      <span class="icon"></span>
+    </a>
+    <a
+      class="bg_links social linkedin"
+      href="https://www.linkedin.com/in/rafaelalucas/"
+      target="_blank"
+    >
+      <span class="icon"></span>
+    </a>
+    <a class="bg_links logo"></a>
+  </div>
+  <!-- end about -->
+
+  <section class="wrapper">
+    <div class="container" data-theme="" data-size="">
+      </div>
+      <div class="settings_modal">
+        <div class="left">
+          <span class="icon hamb">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+          <div class="links_container">
+            <div class="side_link active" id="info_tab" onclick="switchTab('info')">
+              <span>Thông tin</span>
+            </div>
+            <div class="side_link" id="account_tab" onclick="switchTab('account')">
+              <span>Tài khoản</span>
+            </div>
+            <div class="side_link" id="notification_tab" onclick="switchTab('notification')">
+              <span>Thông báo</span>
+            </div>
+            <div class="side_link" id="adjust_tab" onclick="switchTab('adjust')">
+              <span>Điều chỉnh</span>
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          <div id="info" class="tab_content active">
+            <h2>Thông tin</h2>
+            <p>Hiển thị các thông số của sensor...</p>
+          </div>
+          <div id="account" class="tab_content">
+            <h2>Tài khoản</h2>
+            <p>Thông tin tài khoản của người dùng.</p>
+          </div>
+          <div id="notification" class="tab_content">
+            <h2>Thông báo</h2>
+            <p>Danh sách các thông báo gần đây.</p>
+          </div>
+          <div id="adjust" class="tab_content">
+            <div class="general">
+              <h2 class="title">Máy bơm</h2>
+              <div class="toggle_options">
+                <div class="option">
+                  <div class="toggle"></div>
+                  <p>Trạng thái</p>
+                </div>
+                <div class="option">
+                  <div class="toggle off"></div>
+                  <p>Tự động</p>
+                </div>
+              </div>
+            </div>
+            <div class="general">
+              <h2 class="title">Phun sương</h2>
+              <div class="toggle_options">
+                <div class="option">
+                  <div class="toggle"></div>
+                  <p>Trạng thái</p>
+                </div>
+                <div class="option">
+                  <div class="toggle off"></div>
+                  <p>Tự động</p>
+                </div>
+              </div>
+            </div>
+            <div class="general">
+              <h2 class="title">Đèn</h2>
+              <div class="toggle_options">
+                <div class="option">
+                  <div class="toggle"></div>
+                  <p>Trạng thái</p>
+                </div>
+                <div class="option">
+                  <div class="toggle off"></div>
+                  <p>Tự động</p>
+                </div>
+              </div>
+            </div>
+            <div class="appearance">
+              <h2 class="title">Giao diện</h2>
+              <div class="appearance_options">
+                <div class="option">
+                  <p class="text">Cỡ chữ</p>
+                  <div class="font_size">
+                    <p class="letter size_s"><span>A</span></p>
+                    <p class="letter size_m select"><span>A</span></p>
+                    <p class="letter size_l"><span>A</span></p>
+                  </div>
+                </div>
+
+                <div class="option">
+                  <p class="text">Giao diện</p>
+                  <div class="themes">
+                    <div class="color_circle">
+                      <span class="color c_purple active_color"></span>
+                    </div>
+                    <div class="color_circle">
+                      <span class="color c_green"></span>
+                    </div>
+                    <div class="color_circle">
+                      <span class="color c_blue"></span>
+                    </div>
+                    <div class="color_circle">
+                      <span class="color c_pink"></span>
+                    </div>
+                    <div class="color_circle">
+                      <span class="color c_orange"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</html>

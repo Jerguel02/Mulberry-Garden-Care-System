@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vườn trồng dâu tằm tự động</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="firebase.js" defer></script>
+    <script src="script.js" defer></script>
+    <script type="module"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+
+  <body>
+    <section class="wrapper">
+      <div class="container" data-theme="" data-size="">
+        <div class="settings_modal">
+          <div class="left">
+            <div class="logo-container">
+              <img src="img/Logo.png" alt="Logo" class="logo-image" />
+            </div>
+            <span class="icon hamb">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+            <div class="links_container">
+              <div
+                class="side_link active"
+                id="info_tab"
+                onclick="switchTab('info')"
+              >
+                <span>Thông tin</span>
+              </div>
+              <div
+                class="side_link"
+                id="statistic_tab"
+                onclick="switchTab('statistic')"
+              >
+                <span>Thống kê</span>
+              </div>
+              <div
+                class="side_link"
+                id="notification_tab"
+                onclick="switchTab('notification')"
+              >
+                <span>Thông báo</span>
+              </div>
+              <div
+                class="side_link"
+                id="adjust_tab"
+                onclick="switchTab('adjust')"
+              >
+                <span>Điều chỉnh</span>
+              </div>
+            </div>
+          </div>
+          <div class="right">
+            <!-- Tab: Thông tin -->
+            <div id="info" class="tab_content active">
+              <div id="current-date" class="date-display"></div>
+              <section class="info-dashboard">
+                <!-- Thêm phần tử canvas để hiển thị biểu đồ -->
+                <div id="chart-popup" class="chart-popup">
+                  <canvas id="chartCanvas"></canvas>
+                </div>
+
+                <div class="info-box temperature">
+                  <i class="fa fa-thermometer-half icon"></i>
+                  <h3>Nhiệt độ</h3>
+                  <p class="data">
+                    <span class="value" id="temperature">0.0</span> °C
+                  </p>
+                </div>
+                <div class="info-box humidity">
+                  <i class="fa fa-tint icon"></i>
+                  <h3>Độ ẩm</h3>
+                  <p class="data">
+                    <span class="value" id="humidity">0.0</span> %
+                  </p>
+                </div>
+                <div class="info-box waterLevel">
+                  <i class="fa fa-water icon"></i>
+                  <h3>Mực nước</h3>
+                  <p class="data">
+                    <span class="value" id="waterLevel">0.0</span> cm
+                  </p>
+                </div>
+                <div class="info-box pH">
+                  <i class="fa fa-flask icon"></i>
+                  <h3>Độ pH</h3>
+                  <p class="data"><span class="value" id="pH">0.0</span></p>
+                </div>
+                <div class="info-box light">
+                  <i class="fa fa-sun icon"></i>
+                  <h3>Ánh sáng</h3>
+                  <p class="data">
+                    <span class="value" id="light">0.0</span> %
+                  </p>
+                </div>
+                <div class="info-box pumpConsumption">
+                  <i class="fa fa-bolt icon"></i>
+                  <h3>Máy bơm - Dòng điện</h3>
+                  <p class="data">
+                    <span class="value" id="pumpConsumption">0.0</span> A
+                  </p>
+                </div>
+                <div class="info-box ledConsumption">
+                  <i class="fa fa-bolt icon"></i>
+                  <h3>Đèn - Dòng điện</h3>
+                  <p class="data">
+                    <span class="value" id="ledConsumption">0.0</span> A
+                  </p>
+                </div>
+                <div class="info-box mistConsumption">
+                  <i class="fa fa-bolt icon"></i>
+                  <h3>Máy phun sương - Dòng điện</h3>
+                  <p class="data">
+                    <span class="value" id="mistConsumption">0.0</span> A
+                  </p>
+                </div>
+              </section>
+            </div>
+            <!-- Tab: Thống kê -->
+            <div id="statistic" class="tab_content">
+              <div class="chart-navigation">
+                <button id="prevChart" class="nav-button">←</button>
+                <button id="nextChart" class="nav-button">→</button>
+              </div>
+              <!-- Biểu đồ Nhiệt độ -->
+              <div class="statistic-card" id="chart1">
+                <h3>Biểu đồ Nhiệt độ</h3>
+                <canvas id="temperatureChart"></canvas>
+              </div>
+
+              <!-- Biểu đồ Độ ẩm -->
+              <div class="statistic-card" id="chart2" style="display: none">
+                <h3>Biểu đồ Độ ẩm</h3>
+                <canvas id="humidityChart"></canvas>
+              </div>
+
+              <!-- Biểu đồ Mực nước -->
+              <div class="statistic-card" id="chart3" style="display: none">
+                <h3>Biểu đồ Mực nước</h3>
+                <canvas id="waterLevelChart"></canvas>
+              </div>
+
+              <!-- Biểu đồ Độ pH -->
+              <div class="statistic-card" id="chart4" style="display: none">
+                <h3>Biểu đồ Độ pH</h3>
+                <canvas id="pHChart"></canvas>
+              </div>
+
+              <!-- Biểu đồ Ánh sáng -->
+              <div class="statistic-card" id="chart5" style="display: none">
+                <h3>Biểu đồ Ánh sáng</h3>
+                <canvas id="lightChart"></canvas>
+              </div>
+
+              <!-- Biểu đồ Dòng điện của Máy bơm -->
+              <div class="statistic-card" id="chart6" style="display: none">
+                <h3>Máy bơm - Dòng điện</h3>
+                <canvas id="pumpConsumptionChart"></canvas>
+              </div>
+
+              <!-- Biểu đồ Dòng điện của Đèn -->
+              <div class="statistic-card" id="chart7" style="display: none">
+                <h3>Đèn - Dòng điện</h3>
+                <canvas id="ledConsumptionChart"></canvas>
+              </div>
+
+              <!-- Biểu đồ Dòng điện của Máy phun sương -->
+              <div class="statistic-card" id="chart8" style="display: none">
+                <h3>Máy phun sương - Dòng điện</h3>
+                <canvas id="mistConsumptionChart"></canvas>
+              </div>
+            </div>
+            <!-- Tab: Thông báo -->
+            <div id="notification" class="tab_content">
+              <p>Hiện không có thông báo nào</p>
+            </div>
+            <!-- Tab: Điều chỉnh -->
+            <div id="adjust" class="tab_content">
+              <div class="adjust-dashboard">
+                <div class="adjust-card">
+                  <h3 class="adjust-title">Máy bơm</h3>
+                  <div class="toggle-container">
+                    <div class="toggle"></div>
+                    <p class="toggle-label">Trạng thái</p>
+                  </div>
+                  <div class="toggle-container">
+                    <div class="toggle off"></div>
+                    <p class="toggle-label">Tự động</p>
+                  </div>
+                </div>
+                <div class="adjust-card">
+                  <h3 class="adjust-title">Phun sương</h3>
+                  <div class="toggle-container">
+                    <div class="toggle"></div>
+                    <p class="toggle-label">Trạng thái</p>
+                  </div>
+                  <div class="toggle-container">
+                    <div class="toggle off"></div>
+                    <p class="toggle-label">Tự động</p>
+                  </div>
+                </div>
+                <div class="adjust-card">
+                  <h3 class="adjust-title">Đèn</h3>
+                  <div class="toggle-container">
+                    <div class="toggle"></div>
+                    <p class="toggle-label">Trạng thái</p>
+                  </div>
+                  <div class="toggle-container">
+                    <div class="toggle off"></div>
+                    <p class="toggle-label">Tự động</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
