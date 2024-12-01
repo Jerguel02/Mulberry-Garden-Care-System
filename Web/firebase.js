@@ -5,7 +5,6 @@ import {
   onValue,
 } from "https://www.gstatic.com/firebasejs/9.4.0/firebase-database.js";
 
-// Firebase Configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCcmsIiBMejWivNKMthf5kWbzLKeTKJ2sw",
   authDomain: "smartgarden-86bab.firebaseapp.com",
@@ -17,16 +16,13 @@ const firebaseConfig = {
   measurementId: "G-CYKV77CV4W",
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const firebaseRef = ref(db, "sensors");
 
-// Constants
 const MAX_DATA_POINTS = 30;
 const DISPLAY_DATA_POINTS = 20;
 
-// Data Store
 const dataStore = {
   temperature: [],
   humidity: [],
@@ -38,7 +34,6 @@ const dataStore = {
   mistConsumption: [],
 };
 
-// Chart Data & Color Function
 const chartData = {};
 const chartElements = [
   "temperature",
@@ -72,7 +67,6 @@ function getColor(type) {
   }
 }
 
-// Setup Chart Data and Canvas
 chartElements.forEach((type) => {
   chartData[type] = {
     labels: [],
@@ -90,8 +84,7 @@ chartElements.forEach((type) => {
   };
 });
 
-// Initialize Charts
-const charts = {}; // Keep track of chart instances
+const charts = {};
 chartElements.forEach((type) => {
   const canvas = document.getElementById(`${type}Chart`);
   if (canvas) {
@@ -121,7 +114,6 @@ chartElements.forEach((type) => {
   }
 });
 
-// Update UI
 function updateUI(data) {
   document.getElementById("temperature").innerText = data.temperature || "0.0";
   document.getElementById("humidity").innerText = data.humidity || "0.0";
@@ -138,7 +130,6 @@ function updateUI(data) {
     data.mistConsumption || "0.0";
 }
 
-// Add Data to Chart
 function addData(type, label, value) {
   const chart = charts[type];
   chart.data.labels.push(label);
@@ -157,38 +148,31 @@ function addData(type, label, value) {
   chart.update();
 }
 
-// Update Charts from Data Store
 function updateChartsFromStore() {
   const now = new Date();
   const label = now.toLocaleTimeString();
   chartElements.forEach((type) => {
     const values = dataStore[type];
-    const value = values && values.length > 0 ? values[values.length - 1] : 0; // Kiểm tra mảng không rỗng và lấy giá trị mới nhất
+    const value = values && values.length > 0 ? values[values.length - 1] : 0;
     addData(type, label, value);
   });
 }
 
-// Fetch Data from Firebase and update dataStore
 function fetchDataFromFirebase() {
   onValue(firebaseRef, (snapshot) => {
     const data = snapshot.val();
     if (data) {
-      // Cập nhật dataStore với dữ liệu mới từ Firebase
       Object.keys(dataStore).forEach((key) => {
-        const value = data[key] || 0; // Giá trị mới từ Firebase (hoặc 0 nếu không có dữ liệu)
+        const value = data[key] || 0;
         dataStore[key].push(value);
 
-        // Giới hạn số điểm dữ liệu trong dataStore
         if (dataStore[key].length > MAX_DATA_POINTS) {
-          dataStore[key].shift(); // Loại bỏ dữ liệu cũ nhất nếu quá số lượng tối đa
+          dataStore[key].shift();
         }
       });
       console.log("Data updated from Firebase:", dataStore);
 
-      // Cập nhật UI với dữ liệu mới
       updateUI(data);
-
-      // Cập nhật biểu đồ sau khi dữ liệu được thêm vào dataStore
     } else {
       console.error("No data found in Firebase");
     }
@@ -196,42 +180,33 @@ function fetchDataFromFirebase() {
   updateChartsFromStore();
 }
 
-// Fetch data every 10 seconds
 setInterval(fetchDataFromFirebase, 10000);
 
-// Start Updating Charts
-//updateChartsFromStore();
-
-// Chart Navigation Logic (Previous/Next)
 document.addEventListener("DOMContentLoaded", () => {
   const chartsContainer = document.querySelectorAll(".statistic-card");
   let currentChartIndex = 0;
 
-  // Hiển thị biểu đồ đầu tiên
   chartsContainer[currentChartIndex].style.display = "block";
 
-  // Nút "Trái" (prev) chuyển đến biểu đồ trước đó
   document.getElementById("prevChart").addEventListener("click", () => {
-    chartsContainer[currentChartIndex].style.display = "none"; // Ẩn biểu đồ hiện tại
+    chartsContainer[currentChartIndex].style.display = "none";
     currentChartIndex =
       currentChartIndex === 0
         ? chartsContainer.length - 1
-        : currentChartIndex - 1; // Chuyển về biểu đồ trước đó
-    chartsContainer[currentChartIndex].style.display = "block"; // Hiển thị biểu đồ mới
+        : currentChartIndex - 1;
+    chartsContainer[currentChartIndex].style.display = "block";
   });
 
-  // Nút "Phải" (next) chuyển đến biểu đồ tiếp theo
   document.getElementById("nextChart").addEventListener("click", () => {
-    chartsContainer[currentChartIndex].style.display = "none"; // Ẩn biểu đồ hiện tại
+    chartsContainer[currentChartIndex].style.display = "none";
     currentChartIndex =
       currentChartIndex === chartsContainer.length - 1
         ? 0
-        : currentChartIndex + 1; // Chuyển về biểu đồ tiếp theo
-    chartsContainer[currentChartIndex].style.display = "block"; // Hiển thị biểu đồ mới
+        : currentChartIndex + 1;
+    chartsContainer[currentChartIndex].style.display = "block";
   });
 });
 window.addEventListener("load", (event) => {
-  // Toggles
   var toggle = document.querySelectorAll(".toggle");
 
   toggle.forEach(function (el) {
@@ -256,7 +231,6 @@ window.addEventListener("load", (event) => {
     }
   }
 
-  // Font Size Options
   var letter = document.querySelectorAll(".letter"),
     sizeS = document.querySelector(".size_s"),
     sizeM = document.querySelector(".size_m"),
@@ -288,7 +262,6 @@ window.addEventListener("load", (event) => {
     }
   }
 
-  // Themes Options
   var color = document.querySelectorAll(".color"),
     colorPurple = document.querySelector(".c_purple"),
     colorGreen = document.querySelector(".c_green"),
@@ -327,3 +300,59 @@ window.addEventListener("load", (event) => {
     }
   }
 });
+
+async function fetchWeatherData() {
+  const apiUrl =
+    "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/HoChiMinh/tomorrow?unitGroup=metric&key=YA3D7X8ZFGNG7XTADSNQH7C43&contentType=json";
+
+  try {
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    return data.days[0].hours; // Trả về dữ liệu thời tiết theo giờ
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu thời tiết:", error);
+    alert("Không thể lấy dữ liệu thời tiết!");
+    return [];
+  }
+}
+
+function populateTimeSelect(hours) {
+  const timeSelect = document.getElementById("timeSelect");
+  hours.forEach((hour, index) => {
+    const option = document.createElement("option");
+    option.value = index;
+    option.textContent = `${hour.datetime}`;
+    timeSelect.appendChild(option);
+  });
+}
+
+function displayWeather(hourData) {
+  const weatherDetails = document.getElementById("weatherDetails");
+  if (!hourData) {
+    weatherDetails.innerHTML = "<p>Không có dữ liệu thời tiết cho giờ này.</p>";
+    return;
+  }
+
+  weatherDetails.innerHTML = `
+    <p style = "font-size: 18px"><strong>Thời gian:</strong> ${hourData.datetime}</p>
+    <p style = "font-size: 18px"><strong>Nhiệt độ:</strong> ${hourData.temp}°C</p>
+    <p style = "font-size: 18px"><strong>Cảm giác như:</strong> ${hourData.feelslike}°C</p>
+    <p style = "font-size: 18px"><strong>Độ ẩm:</strong> ${hourData.humidity}%</p>
+    <p style = "font-size: 18px"><strong>Lượng mưa:</strong> ${hourData.precip} mm</p>
+    <p style = "font-size: 18px"><strong>Xác suất mưa:</strong> ${hourData.precipprob}%</p>
+    <p style = "font-size: 18px"><strong>Thời tiết:</strong> ${hourData.conditions}</p>
+  `;
+}
+
+async function initializeWeatherForecast() {
+  const hours = await fetchWeatherData();
+  populateTimeSelect(hours);
+
+  const timeSelect = document.getElementById("timeSelect");
+  timeSelect.addEventListener("change", (event) => {
+    const selectedHour = hours[event.target.value];
+    displayWeather(selectedHour);
+  });
+}
+
+initializeWeatherForecast();

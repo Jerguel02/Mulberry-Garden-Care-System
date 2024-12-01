@@ -51,7 +51,7 @@
                 id="notification_tab"
                 onclick="switchTab('notification')"
               >
-                <span>Thông báo</span>
+                <span>Dự báo</span>
               </div>
               <div
                 class="side_link"
@@ -65,6 +65,7 @@
           <div class="right">
             <!-- Tab: Thông tin -->
             <div id="info" class="tab_content active">
+              <h2>Thông tin</h2>
               <div id="current-date" class="calendar-widget">
                 <div class="calendar-header">Tháng 1</div>
                 <div class="calendar-body">
@@ -141,6 +142,7 @@
             </div>
             <!-- Tab: Thống kê -->
             <div id="statistic" class="tab_content">
+              <h2>Thống kê</h2>
               <div class="chart-navigation">
                 <button id="prevChart" class="nav-button">←</button>
                 <button id="nextChart" class="nav-button">→</button>
@@ -193,12 +195,19 @@
                 <canvas id="mistConsumptionChart"></canvas>
               </div>
             </div>
-            <!-- Tab: Thông báo -->
             <div id="notification" class="tab_content">
-              <p>Hiện không có thông báo nào</p>
+              <h2>Dự báo thời tiết</h2>
+              <label for="timeSelect">Chọn giờ:</label>
+              <select id="timeSelect">
+                <option value="" selected disabled>Chọn giờ</option>
+                <!-- Thêm các tùy chọn giờ -->
+              </select>
+              <div id="weatherDetails" class="weather-info"></div>
             </div>
+
             <!-- Tab: Điều chỉnh -->
             <div id="adjust" class="tab_content">
+              <h2 style="color: white">Điều khiển</h2>
               <div class="adjust-dashboard">
                 <div class="adjust-card">
                   <i class="fas fa-faucet card-icon" style="color: #08cb08"></i>

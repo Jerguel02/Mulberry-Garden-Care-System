@@ -207,29 +207,29 @@ body {
   backdrop-filter: blur(5px);
 }
 .project-title-1 {
-  font-size: 20px; /* Kích thước lớn */
+  font-size: 20px;
 
-  color: #ffffff; /* Xanh lá - tạo cảm giác tươi mới */
+  color: #ffffff;
   margin-bottom: 8px;
   margin-top: 10px;
   font-weight: normal;
 
-  letter-spacing: 1.2px; /* Khoảng cách giữa các chữ */
+  letter-spacing: 1.2px;
 }
 .project-title-2 {
-  font-weight: bold; /* Đậm */
-  font-size: 25px; /* Nhỏ hơn tiêu đề chính */
-  text-transform: uppercase; /* Viết hoa toàn bộ */
-  color: #ffffff; /* Màu xám tối, nhẹ nhàng */
-  line-height: 1.5; /* Dễ đọc hơn */
+  font-weight: bold;
+  font-size: 25px;
+  text-transform: uppercase;
+  color: #ffffff;
+  line-height: 1.5;
 }
 .project-titles {
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Căn giữa theo chiều dọc */
-  align-items: center; /* Căn giữa theo chiều ngang */
-  height: 100px; /* Chiều cao cụ thể cho vùng tiêu đề */
-  gap: 8px; /* Khoảng cách giữa các tiêu đề */
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  gap: 8px;
 }
 .logo img {
   width: 30%;
@@ -238,37 +238,37 @@ body {
   opacity: 1;
 }
 .wrapper {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Hiệu ứng đổ bóng nhẹ */
-  border-radius: 10px; /* Bo góc */
-  transition: height 0.3s ease-in-out, background 0.3s ease; /* Hiệu ứng chuyển đổi */
-  overflow: hidden; /* Đảm bảo không có nội dung tràn */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  transition: height 0.3s ease-in-out, background 0.3s ease;
+  overflow: hidden;
 }
 .left {
   transform: translateX(-210px);
 }
 .left .logo-container {
-  width: 100%; /* Chiếm toàn bộ chiều rộng của thanh bên */
-  text-align: center; /* Căn giữa logo theo chiều ngang */
-  padding: 10px 0; /* Khoảng cách trên và dưới logo */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2); /* Đường kẻ phân cách */
+  width: 100%;
+  text-align: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   box-sizing: border-box;
   background: white;
 }
 
 .left .logo-container .logo-image {
-  width: 100%; /* Điều chỉnh kích thước logo nhỏ hơn */
-  max-width: 100px; /* Giới hạn kích thước tối đa */
-  height: auto; /* Giữ tỉ lệ gốc để logo không bị méo */
-  object-fit: contain; /* Đảm bảo logo vừa khung và không bị méo */
-  margin: 0 auto; /* Đảm bảo căn giữa logo trong trường hợp có thêm yếu tố khác */
+  width: 100%;
+  max-width: 100px;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto;
 }
 
 @media screen and (max-width: 799px) {
   .left .logo-container {
-    padding: 10px 0; /* Giảm khoảng cách trên và dưới */
+    padding: 10px 0;
   }
   .left .logo-container .logo-image {
-    width: 60%; /* Thu nhỏ logo */
+    width: 60%;
   }
 }
 
@@ -306,19 +306,19 @@ body {
   }
 }
 .wrapper .container .settings_modal .left {
-  position: fixed; /* Giữ cố định vị trí */
-  top: 0; /* Gắn sát cạnh trên màn hình */
-  left: 0; /* Gắn sát cạnh trái màn hình */
-  background: rgba(69, 70, 96, 0.8); /* Màu nền */
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: rgba(69, 70, 96, 0.8);
   width: 100%;
-  max-width: 220px; /* Chiều rộng tối đa */
-  height: 100%; /* Chiều cao toàn màn hình */
-  transition: all 0.6s 0.2s ease; /* Hiệu ứng chuyển đổi */
-  box-shadow: 10px 0px 34px rgba(0, 0, 0, 0.8); /* Hiệu ứng bóng */
-  backdrop-filter: blur(10px); /* Làm mờ nền phía sau */
-  border-radius: 6px 0px 0px 6px; /* Góc bo tròn */
-  z-index: 2; /* Đảm bảo phần tử này luôn ở trên các phần tử khác */
-  overflow-y: auto; /* Thêm cuộn dọc nếu nội dung vượt quá chiều cao */
+  max-width: 220px;
+  height: 100%;
+  transition: all 0.6s 0.2s ease;
+  box-shadow: 10px 0px 34px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 6px 0px 0px 6px;
+  z-index: 2;
+  overflow-y: auto;
 }
 
 @media screen and (max-width: 799px) {
@@ -523,8 +523,8 @@ body {
   transition-delay: 1s;
 }
 .wrapper .container .settings_modal .right {
-  margin-left: 20px; /* Khoảng trống tương ứng với chiều rộng của menu trái */
-  padding: 10px; /* Thêm khoảng cách nội dung bên trong */
+  margin-left: 20px;
+  padding: 10px;
   width: 100%;
   height: 100%;
   padding: 50px 10%;
@@ -645,7 +645,7 @@ body {
   .option:last-child {
   margin-bottom: 0;
 }
-/* Grid layout cho phần điều chỉnh */
+
 .adjust-dashboard {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -653,7 +653,6 @@ body {
   padding: 20px;
 }
 
-/* Card điều chỉnh */
 .adjust-card {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
@@ -661,19 +660,17 @@ body {
   padding: 20px;
 
   text-align: center;
-  color: #ffffff; /* Màu chữ mặc định */
+  color: #ffffff;
   transition: transform 0.3s ease, box-shadow 0.3s ease,
     background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Hiệu ứng hover cho card */
 .adjust-card:hover {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  background-color: rgba(255, 255, 255, 0.2); /* Làm sáng nền khi hover */
-  color: #ff5733; /* Màu chữ khi hover */
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ff5733;
 }
 
-/* Tiêu đề */
 .adjust-title {
   font-size: 18px;
   font-weight: bold;
@@ -685,7 +682,6 @@ body {
   margin-bottom: 10px;
   display: block;
 }
-/* Container cho toggle */
 .toggle-container {
   display: flex;
   align-items: center;
@@ -693,7 +689,6 @@ body {
   margin-bottom: 10px;
 }
 
-/* Nút toggle */
 .toggle {
   width: 40px;
   height: 20px;
@@ -717,7 +712,6 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Trạng thái bật */
 .toggle.on {
   background: #4caf50;
 }
@@ -726,7 +720,6 @@ body {
   transform: translateX(20px);
 }
 
-/* Nhãn toggle */
 .toggle-label {
   font-size: 16px;
   font-weight: 500;
@@ -734,7 +727,6 @@ body {
   margin-left: 10px;
 }
 
-/* Card phản hồi trên thiết bị di động */
 @media screen and (max-width: 799px) {
   .adjust-card {
     padding: 15px;
@@ -1125,7 +1117,6 @@ body {
   transition: all 0.3s ease;
 }
 
-/* Định dạng các nội dung tab */
 .tab_content {
   opacity: 0;
   max-height: 0;
@@ -1135,10 +1126,9 @@ body {
 
 .tab_content.active {
   opacity: 1;
-  max-height: 4000px; /* Đảm bảo đủ lớn để chứa nội dung */
+  max-height: 4000px;
 }
 
-/* Định dạng trạng thái active cho các tab */
 .side_link.active {
   background-color: #007bff;
   color: #fff;
@@ -1166,10 +1156,10 @@ body {
 .info-box canvas {
   width: 100%;
   height: 200px;
-  display: none; /* Biểu đồ ẩn đi mặc định */
+  display: none;
 }
 .info-box.show-chart canvas {
-  display: block; /* Hiển thị canvas biểu đồ khi hover */
+  display: block;
 }
 .info-header {
   display: flex;
@@ -1208,7 +1198,7 @@ canvas {
 }
 
 .info-box {
-  background: rgba(255, 255, 255, 0.1); /* Nền trong suốt với màu trắng nhẹ */
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
@@ -1220,46 +1210,42 @@ canvas {
 .info-box:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  background-color: rgba(255, 255, 255, 0.2); /* Làm sáng nền khi hover */
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Biểu tượng trong card */
 .info-box .icon {
   font-size: 36px;
-  color: #4caf50; /* Màu xanh lá cho biểu tượng */
+  color: #4caf50;
   margin-bottom: 10px;
   transition: color 0.3s ease;
 }
 
-/* Tiêu đề card */
 .info-box h3 {
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 10px;
-  color: #fff; /* Chữ trắng cho tiêu đề */
+  color: #fff;
   transition: color 0.3s ease;
 }
 
-/* Nội dung giá trị */
 .info-box p {
   font-size: 24px;
   font-weight: 700;
-  color: #ffffff; /* Chữ trắng cho giá trị */
+  color: #ffffff;
   transition: color 0.3s ease;
 }
 
-/* Khi hover, đổi màu biểu tượng, tiêu đề và giá trị */
 .info-box:hover .icon {
-  color: #ff5722; /* Màu cam nổi bật khi hover */
+  color: #ff5722;
 }
 
 .info-box:hover h3,
 .info-box:hover p {
-  color: #ff5722; /* Đổi màu chữ khi hover */
+  color: #ff5722;
 }
-/* Card thông tin dòng điện */
+
 .info-box.power_consumtion {
-  background: rgba(255, 255, 255, 0.1); /* Nền trong suốt với màu trắng nhẹ */
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
@@ -1271,44 +1257,40 @@ canvas {
 .info-box.power_consumtion:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  background-color: rgba(255, 255, 255, 0.2); /* Làm sáng nền khi hover */
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Biểu tượng trong card */
 .info-box.power_consumtion .icon {
   font-size: 36px;
-  color: #ec3e04; /* Màu xanh lá cho biểu tượng */
+  color: #ec3e04;
   margin-bottom: 10px;
   transition: color 0.3s ease;
 }
 
-/* Tiêu đề card */
 .info-box.power_consumtion h3 {
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 10px;
-  color: #fff; /* Chữ trắng cho tiêu đề */
+  color: #fff;
   transition: color 0.3s ease;
 }
 
-/* Nội dung giá trị */
 .info-box.power_consumtion p {
   font-size: 24px;
   font-weight: 700;
-  color: #ffffff; /* Chữ trắng cho giá trị */
+  color: #ffffff;
   transition: color 0.3s ease;
 }
 
-/* Khi hover, đổi màu biểu tượng, tiêu đề và giá trị */
 .info-box.power_consumtion:hover .icon {
-  color: #ff5722; /* Màu cam nổi bật khi hover */
+  color: #ff5722;
 }
 
 .info-box.power_consumtion:hover h3,
 .info-box.power_consumtion:hover p {
-  color: #ff5722; /* Đổi màu chữ khi hover */
+  color: #ff5722;
 }
-/* Popup cho biểu đồ */
+
 .chart-popup {
   position: absolute;
   display: none;
@@ -1317,16 +1299,14 @@ canvas {
   padding: 15px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   z-index: 10;
-  pointer-events: none; /* Không gây cản trở sự kiện chuột */
+  pointer-events: none;
 }
 
-/* Đảm bảo canvas chiếm đầy diện tích trong popup */
 #chartCanvas {
   width: 600px;
   height: 400px;
 }
 
-/* Hiển thị chart-popup khi có class 'show' */
 .chart-popup.show {
   display: block;
 }
@@ -1352,7 +1332,6 @@ canvas {
   margin-bottom: 15px;
 }
 
-/* Đảm bảo canvas chiếm đầy diện tích trong mỗi card */
 #temperatureChart,
 #humidityChart,
 #waterLevelChart #pHChart #lightChart #pumpChart #mistChart #ledChart {
@@ -1364,67 +1343,58 @@ canvas {
   margin-bottom: 20px;
 }
 
-/* Hiệu ứng khi rê chuột vào nút */
-/* Định dạng nút điều hướng */
 .nav-button {
-  background-color: #4caf50; /* Màu nền ban đầu */
+  background-color: #4caf50;
   color: white;
-  padding: 12px 25px; /* Cỡ nút */
+  padding: 12px 25px;
   border: none;
-  border-radius: 50px; /* Đường viền bo tròn */
+  border-radius: 50px;
   cursor: pointer;
   font-size: 18px;
   margin: 0 15px;
-  transition: all 0.3s ease; /* Hiệu ứng chuyển đổi */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Bóng đổ nhẹ */
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
-/* Hiệu ứng khi rê chuột vào nút */
 #prevChart:hover {
-  background-color: #45a049; /* Màu khi hover */
-  transform: translateX(-5px); /* Di chuyển sang trái khi hover */
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); /* Bóng đổ mạnh khi hover */
+  background-color: #45a049;
+  transform: translateX(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
 #nextChart:hover {
-  background-color: #45a049; /* Màu khi hover */
-  transform: translateX(5px); /* Di chuyển sang phải khi hover */
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); /* Bóng đổ mạnh khi hover */
+  background-color: #45a049;
+  transform: translateX(5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
-/* Hiệu ứng khi nhấn nút */
 .nav-button:active {
-  transform: translateY(2px); /* Nút sẽ bị đẩy xuống khi nhấn */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Bóng đổ nhẹ khi nhấn */
+  transform: translateY(2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Thêm hiệu ứng chuyển đổi mượt mà cho các nút */
 .nav-button:focus {
-  outline: none; /* Loại bỏ viền focus */
-  box-shadow: 0 0 10px rgba(76, 175, 80, 0.7); /* Viền sáng khi focus */
+  outline: none;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
 }
 
 .date-display {
   font-size: 18px;
   font-weight: bold;
-  color: #fff; /* Màu chữ trắng cho nổi bật */
+  color: #fff;
   text-align: center;
   padding: 15px;
   margin-bottom: 20px;
   border-radius: 10px;
-  background: linear-gradient(
-    90deg,
-    #4e54c8,
-    #8f94fb
-  ); /* Gradient màu xanh tím */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Hiệu ứng đổ bóng */
-  font-family: "Roboto", sans-serif; /* Font chữ hiện đại */
+  background: linear-gradient(90deg, #4e54c8, #8f94fb);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  font-family: "Roboto", sans-serif;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .date-display:hover {
-  transform: scale(1.05); /* Hiệu ứng phóng to nhẹ khi hover */
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* Tăng bóng khi hover */
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 .calendar-widget {
@@ -1432,20 +1402,20 @@ canvas {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100%; /* Kích thước phù hợp */
+  width: 100%;
   height: 200px;
-  background-color: #ded3d3; /* Nền trắng */
-  border-radius: 10px; /* Bo góc */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Hiệu ứng nổi */
-  font-family: "Arial", sans-serif; /* Font chung */
+  background-color: #ded3d3;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  font-family: "Arial", sans-serif;
   text-align: center;
 }
 .calendar-header {
   font-size: 18px;
   font-weight: bold;
-  color: #4caf50; /* Màu xanh lá nổi bật */
+  color: #4caf50;
   padding: 10px 0;
-  border-bottom: 2px solid #e0e0e0; /* Đường kẻ dưới */
+  border-bottom: 2px solid #e0e0e0;
   width: 100%;
 }
 .calendar-body {
@@ -1463,16 +1433,75 @@ canvas {
 .calendar-day {
   font-size: 48px;
   font-weight: bold;
-  color: #333; /* Màu chữ đậm */
+  color: #333;
 }
 .calendar-weekday {
   font-size: 16px;
   font-weight: normal;
-  color: #777; /* Màu xám nhạt */
+  color: #777;
   margin-top: 5px;
 }
 .calendar-widget:hover {
-  transform: scale(1.05); /* Phóng to nhẹ */
-  transition: all 0.3s ease; /* Mượt mà */
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3); /* Hiệu ứng nổi rõ hơn */
+  transform: scale(1.05);
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+#notification {
+  background: linear-gradient(to bottom right, #1c2127, #66ccff);
+  width: 100%;
+  padding: 20px;
+  border-radius: 16px;
+  color: white;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s, opacity 0.3s;
+}
+#notification:hover {
+  transform: scale(1.01);
+}
+#notification.hidden {
+  transform: scale(0.9);
+  opacity: 0;
+}
+
+h2 {
+  text-align: center;
+  font-size: 1.5em;
+  margin-bottom: 20px;
+  color: white;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  font-size: 1em;
+  margin-bottom: 20px;
+}
+
+.weather-info {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.weather-info p {
+  margin: 5px 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
