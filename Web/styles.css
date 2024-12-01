@@ -206,6 +206,31 @@ body {
   border-radius: 100%;
   backdrop-filter: blur(5px);
 }
+.project-title-1 {
+  font-size: 20px; /* Kích thước lớn */
+
+  color: #ffffff; /* Xanh lá - tạo cảm giác tươi mới */
+  margin-bottom: 8px;
+  margin-top: 10px;
+  font-weight: normal;
+
+  letter-spacing: 1.2px; /* Khoảng cách giữa các chữ */
+}
+.project-title-2 {
+  font-weight: bold; /* Đậm */
+  font-size: 25px; /* Nhỏ hơn tiêu đề chính */
+  text-transform: uppercase; /* Viết hoa toàn bộ */
+  color: #ffffff; /* Màu xám tối, nhẹ nhàng */
+  line-height: 1.5; /* Dễ đọc hơn */
+}
+.project-titles {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Căn giữa theo chiều dọc */
+  align-items: center; /* Căn giữa theo chiều ngang */
+  height: 100px; /* Chiều cao cụ thể cho vùng tiêu đề */
+  gap: 8px; /* Khoảng cách giữa các tiêu đề */
+}
 .logo img {
   width: 30%;
   height: 30%;
@@ -215,8 +240,11 @@ body {
 .wrapper {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Hiệu ứng đổ bóng nhẹ */
   border-radius: 10px; /* Bo góc */
-  transition: height 0.4s ease-in-out, background 0.4s ease; /* Hiệu ứng chuyển đổi */
+  transition: height 0.3s ease-in-out, background 0.3s ease; /* Hiệu ứng chuyển đổi */
   overflow: hidden; /* Đảm bảo không có nội dung tràn */
+}
+.left {
+  transform: translateX(-210px);
 }
 .left .logo-container {
   width: 100%; /* Chiếm toàn bộ chiều rộng của thanh bên */
@@ -224,10 +252,11 @@ body {
   padding: 10px 0; /* Khoảng cách trên và dưới logo */
   border-bottom: 1px solid rgba(255, 255, 255, 0.2); /* Đường kẻ phân cách */
   box-sizing: border-box;
+  background: white;
 }
 
 .left .logo-container .logo-image {
-  width: 40%; /* Điều chỉnh kích thước logo nhỏ hơn */
+  width: 100%; /* Điều chỉnh kích thước logo nhỏ hơn */
   max-width: 100px; /* Giới hạn kích thước tối đa */
   height: auto; /* Giữ tỉ lệ gốc để logo không bị méo */
   object-fit: contain; /* Đảm bảo logo vừa khung và không bị méo */
@@ -626,18 +655,22 @@ body {
 
 /* Card điều chỉnh */
 .adjust-card {
-  background: linear-gradient(135deg, #ffffff, #f7f7f7);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
   text-align: center;
+  color: #ffffff; /* Màu chữ mặc định */
+  transition: transform 0.3s ease, box-shadow 0.3s ease,
+    background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Hiệu ứng hover cho card */
 .adjust-card:hover {
-  transform: translateY(-5px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.2); /* Làm sáng nền khi hover */
+  color: #ff5733; /* Màu chữ khi hover */
 }
 
 /* Tiêu đề */
@@ -647,7 +680,11 @@ body {
   margin-bottom: 20px;
   color: #333;
 }
-
+.card-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+  display: block;
+}
 /* Container cho toggle */
 .toggle-container {
   display: flex;
@@ -1388,4 +1425,54 @@ canvas {
 .date-display:hover {
   transform: scale(1.05); /* Hiệu ứng phóng to nhẹ khi hover */
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* Tăng bóng khi hover */
+}
+
+.calendar-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%; /* Kích thước phù hợp */
+  height: 200px;
+  background-color: #ded3d3; /* Nền trắng */
+  border-radius: 10px; /* Bo góc */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Hiệu ứng nổi */
+  font-family: "Arial", sans-serif; /* Font chung */
+  text-align: center;
+}
+.calendar-header {
+  font-size: 18px;
+  font-weight: bold;
+  color: #4caf50; /* Màu xanh lá nổi bật */
+  padding: 10px 0;
+  border-bottom: 2px solid #e0e0e0; /* Đường kẻ dưới */
+  width: 100%;
+}
+.calendar-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 10px;
+}
+.calendar-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 10px;
+}
+.calendar-day {
+  font-size: 48px;
+  font-weight: bold;
+  color: #333; /* Màu chữ đậm */
+}
+.calendar-weekday {
+  font-size: 16px;
+  font-weight: normal;
+  color: #777; /* Màu xám nhạt */
+  margin-top: 5px;
+}
+.calendar-widget:hover {
+  transform: scale(1.05); /* Phóng to nhẹ */
+  transition: all 0.3s ease; /* Mượt mà */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3); /* Hiệu ứng nổi rõ hơn */
 }

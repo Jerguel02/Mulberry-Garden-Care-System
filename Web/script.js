@@ -1,106 +1,3 @@
-window.addEventListener("load", (event) => {
-  // Expand Left Side
-  var icon = document.querySelector(".hamb"),
-    left = document.querySelector(".left");
-
-  icon.addEventListener("click", expand);
-
-  function expand() {
-    if (left.classList.contains("show")) {
-      left.classList.remove("show");
-    } else {
-      left.classList.add("show");
-    }
-  }
-
-  // Toggles
-  var toggle = document.querySelectorAll(".toggle");
-
-  toggle.forEach(function (el) {
-    el.addEventListener("click", activateToggle);
-  });
-
-  function activateToggle(event) {
-    var currentToggle = event.target;
-
-    if (currentToggle.classList.contains("off")) {
-      currentToggle.classList.remove("off");
-    } else {
-      currentToggle.classList.add("off");
-    }
-  }
-
-  // Font Size Options
-  var letter = document.querySelectorAll(".letter"),
-    sizeS = document.querySelector(".size_s"),
-    sizeM = document.querySelector(".size_m"),
-    sizeL = document.querySelector(".size_l"),
-    container = document.querySelector(".container");
-
-  letter.forEach(function (el) {
-    el.addEventListener("click", activateLetter);
-  });
-
-  function activateLetter(event) {
-    var currentLetter = event.currentTarget,
-      allLetters = document.querySelectorAll(".letter");
-
-    allLetters.forEach(function (el) {
-      el.classList.remove("select");
-    });
-    currentLetter.classList.add("select");
-
-    if (sizeS.classList.contains("select")) {
-      container.setAttribute("data-size", "small");
-    }
-
-    if (sizeM.classList.contains("select")) {
-      container.setAttribute("data-size", "");
-    }
-    if (sizeL.classList.contains("select")) {
-      container.setAttribute("data-size", "large");
-    }
-  }
-
-  // Themes Options
-  var color = document.querySelectorAll(".color"),
-    colorPurple = document.querySelector(".c_purple"),
-    colorGreen = document.querySelector(".c_green"),
-    colorBlue = document.querySelector(".c_blue"),
-    colorPink = document.querySelector(".c_pink"),
-    colorOrange = document.querySelector(".c_orange");
-
-  color.forEach(function (el) {
-    el.addEventListener("click", changeTheme);
-  });
-
-  function changeTheme(event) {
-    var currentColor = event.target,
-      allColors = document.querySelectorAll(".color");
-
-    allColors.forEach(function (el) {
-      el.classList.remove("active_color");
-    });
-    currentColor.classList.add("active_color");
-
-    if (colorPurple.classList.contains("active_color")) {
-      container.setAttribute("data-theme", "");
-    }
-
-    if (colorGreen.classList.contains("active_color")) {
-      container.setAttribute("data-theme", "green");
-    }
-    if (colorBlue.classList.contains("active_color")) {
-      container.setAttribute("data-theme", "blue");
-    }
-    if (colorPink.classList.contains("active_color")) {
-      container.setAttribute("data-theme", "pink");
-    }
-    if (colorOrange.classList.contains("active_color")) {
-      container.setAttribute("data-theme", "orange");
-    }
-  }
-});
 function switchTab(tabId) {
   // Ẩn tất cả các tab nội dung
   const tabs = document.querySelectorAll(".tab_content");
@@ -117,7 +14,6 @@ function switchTab(tabId) {
   const activeLink = document.getElementById(`${tabId}_tab`);
   if (activeLink) activeLink.classList.add("active");
 }
-
 document.addEventListener("DOMContentLoaded", function () {
   const counters = document.querySelectorAll(".info-box .value");
   counters.forEach((counter) => {
@@ -139,6 +35,7 @@ document.addEventListener("DOMContentLoaded", function () {
     updateCounter();
   });
 });
+/*
 document.addEventListener("DOMContentLoaded", () => {
   const currentDateElement = document.getElementById("current-date");
 
@@ -152,4 +49,53 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   currentDateElement.textContent = `📅 Hôm nay: ${dateString}`;
+});*/
+const currentDate = new Date();
+const monthNames = [
+  "Tháng 1",
+  "Tháng 2",
+  "Tháng 3",
+  "Tháng 4",
+  "Tháng 5",
+  "Tháng 6",
+  "Tháng 7",
+  "Tháng 8",
+  "Tháng 9",
+  "Tháng 10",
+  "Tháng 11",
+  "Tháng 12",
+];
+const weekdayNames = [
+  "Chủ Nhật",
+  "Thứ Hai",
+  "Thứ Ba",
+  "Thứ Tư",
+  "Thứ Năm",
+  "Thứ Sáu",
+  "Thứ Bảy",
+];
+
+document.querySelector(".calendar-header").innerText =
+  monthNames[currentDate.getMonth()];
+document.querySelector(".calendar-day").innerText = String(
+  currentDate.getDate()
+).padStart(2, "0");
+document.querySelector(".calendar-weekday").innerText =
+  weekdayNames[currentDate.getDay()];
+
+const leftPanel = document.querySelector(".left");
+let isPanelOpen = false;
+
+document.addEventListener("mousemove", (e) => {
+  const mouseX = e.clientX; // Vị trí chuột trên màn hình
+
+  // Nếu chuột vào gần cạnh trái màn hình
+  if (mouseX < 50 && !isPanelOpen) {
+    leftPanel.style.transform = "translateX(0)"; // Mở panel
+    isPanelOpen = true;
+  } else if (mouseX > 50 && isPanelOpen && !leftPanel.contains(e.target)) {
+    // Nếu chuột rời khỏi vùng của panel và không ở trong vùng .left
+    leftPanel.style.transform = "translateX(-210px)"; // Thu lại panel
+    isPanelOpen = false;
+  }
 });
