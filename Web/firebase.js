@@ -3,6 +3,8 @@ import {
   getDatabase,
   ref,
   onValue,
+  update,
+  get,
 } from "https://www.gstatic.com/firebasejs/9.4.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -142,9 +144,6 @@ function addData(type, label, value) {
   if (chart.data.labels.length !== chart.data.datasets[0].data.length) {
     console.error(`Mismatched data: ${type}`);
   }
-
-  console.log(`Adding data to ${type}:`, { label, value });
-  console.log("Chart Update!");
   chart.update();
 }
 
@@ -170,7 +169,6 @@ function fetchDataFromFirebase() {
           dataStore[key].shift();
         }
       });
-      console.log("Data updated from Firebase:", dataStore);
 
       updateUI(data);
     } else {
@@ -206,98 +204,136 @@ document.addEventListener("DOMContentLoaded", () => {
     chartsContainer[currentChartIndex].style.display = "block";
   });
 });
-window.addEventListener("load", (event) => {
-  var toggle = document.querySelectorAll(".toggle");
 
-  toggle.forEach(function (el) {
+window.addEventListener("load", (event) => {
+  var toggles = document.querySelectorAll(".toggle");
+
+  // Đọc trạng thái ban đầu từ Firebase khi web khởi động
+  initializeToggleStateOnce();
+  listenToFirebaseChanges();
+  // Lắng nghe sự kiện click trên các toggle
+  toggles.forEach(function (el) {
     el.addEventListener("click", activateToggle);
   });
 
+  // Hàm xử lý khi nhấn vào toggle
   function activateToggle(event) {
     var currentToggle = event.target;
     var toggleLabel = currentToggle.nextElementSibling;
+
     if (!toggleLabel) {
       console.error("Không tìm thấy nhãn liên quan!");
       return;
     }
-    if (currentToggle.classList.contains("on")) {
-      currentToggle.classList.remove("on");
-      toggleLabel.style.color = "#b1b2d6";
-      console.log("Removed on!");
-    } else {
+
+    // Kiểm tra xem toggle có phải là "Trạng thái" không
+    if (toggleLabel.textContent.trim() === "Trạng thái") {
+      // Tìm nút "Tự động" liên quan trong cùng một adjust-card
+      var adjustCard = currentToggle.closest(".adjust-card");
+      if (adjustCard) {
+        var autoLabel = Array.from(
+          adjustCard.querySelectorAll(".toggle-label")
+        ).find((label) => label.textContent.trim() === "Tự động");
+
+        if (autoLabel) {
+          var autoToggle = autoLabel.previousElementSibling;
+          if (autoToggle && autoToggle.classList.contains("on")) {
+            autoToggle.classList.remove("on");
+            autoLabel.style.color = "#b1b2d6"; // Màu mặc định
+            console.log("Tự động chuyển về tắt!");
+
+            // Đẩy trạng thái "Tự động" về tắt lên Firebase
+            var autoToggleId = autoToggle.id;
+            if (autoToggleId) {
+              var [device, feature] = autoToggleId.split("-");
+              update(ref(db, `controls`), {
+                [device]: false,
+              }).catch((error) => console.error("Lỗi Firebase:", error));
+            }
+          }
+        }
+      }
+    }
+
+    // Đổi trạng thái của toggle hiện tại
+    var newState = !currentToggle.classList.contains("on");
+    if (newState) {
       currentToggle.classList.add("on");
       toggleLabel.style.color = "#4caf50";
-      console.log("Added on!");
+    } else {
+      currentToggle.classList.remove("on");
+      toggleLabel.style.color = "#b1b2d6";
+    }
+
+    // Đẩy trạng thái của toggle hiện tại lên Firebase
+    var toggleId = currentToggle.id;
+    if (toggleId) {
+      var [device, feature] = toggleId.split("-");
+      update(ref(db, `controls`), {
+        [device]: newState,
+      }).catch((error) => console.error("Lỗi Firebase:", error));
     }
   }
 
-  var letter = document.querySelectorAll(".letter"),
-    sizeS = document.querySelector(".size_s"),
-    sizeM = document.querySelector(".size_m"),
-    sizeL = document.querySelector(".size_l"),
-    container = document.querySelector(".container");
+  function initializeToggleStateOnce() {
+    const dbRef = ref(db, `controls`);
+    get(dbRef)
+      .then((snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          Object.keys(data).forEach((device) => {
+            const features = data[device];
+            const toggleId = `${device}`;
+            console.log(toggleId);
+            const toggleElement = document.getElementById(toggleId);
 
-  letter.forEach(function (el) {
-    el.addEventListener("click", activateLetter);
-  });
+            if (toggleElement) {
+              const isActive = features;
+              const toggleLabel = toggleElement.nextElementSibling;
 
-  function activateLetter(event) {
-    var currentLetter = event.currentTarget,
-      allLetters = document.querySelectorAll(".letter");
-
-    allLetters.forEach(function (el) {
-      el.classList.remove("select");
-    });
-    currentLetter.classList.add("select");
-
-    if (sizeS.classList.contains("select")) {
-      container.setAttribute("data-size", "small");
-    }
-
-    if (sizeM.classList.contains("select")) {
-      container.setAttribute("data-size", "");
-    }
-    if (sizeL.classList.contains("select")) {
-      container.setAttribute("data-size", "large");
-    }
+              if (isActive) {
+                toggleElement.classList.add("on");
+                if (toggleLabel) toggleLabel.style.color = "#4caf50";
+              } else {
+                toggleElement.classList.remove("on");
+                if (toggleLabel) toggleLabel.style.color = "#b1b2d6";
+              }
+            }
+          });
+        } else {
+          console.log("Không có dữ liệu ban đầu từ Firebase!");
+        }
+      })
+      .catch((error) => console.error("Lỗi khi đọc Firebase:", error));
   }
+  function listenToFirebaseChanges() {
+    const dbRef = ref(db, `controls`);
+    onValue(dbRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        Object.keys(data).forEach((device) => {
+          const features = data[device];
+          const toggleId = `${device}`;
+          const toggleElement = document.getElementById(toggleId);
 
-  var color = document.querySelectorAll(".color"),
-    colorPurple = document.querySelector(".c_purple"),
-    colorGreen = document.querySelector(".c_green"),
-    colorBlue = document.querySelector(".c_blue"),
-    colorPink = document.querySelector(".c_pink"),
-    colorOrange = document.querySelector(".c_orange");
+          if (toggleElement) {
+            const isActive = features;
+            const toggleLabel = toggleElement.nextElementSibling;
 
-  color.forEach(function (el) {
-    el.addEventListener("click", changeTheme);
-  });
-
-  function changeTheme(event) {
-    var currentColor = event.target,
-      allColors = document.querySelectorAll(".color");
-
-    allColors.forEach(function (el) {
-      el.classList.remove("active_color");
+            // Cập nhật giao diện theo trạng thái Firebase
+            if (isActive) {
+              toggleElement.classList.add("on");
+              if (toggleLabel) toggleLabel.style.color = "#4caf50";
+            } else {
+              toggleElement.classList.remove("on");
+              if (toggleLabel) toggleLabel.style.color = "#b1b2d6";
+            }
+          }
+        });
+      } else {
+        console.log("Không có dữ liệu thay đổi từ Firebase!");
+      }
     });
-    currentColor.classList.add("active_color");
-
-    if (colorPurple.classList.contains("active_color")) {
-      container.setAttribute("data-theme", "");
-    }
-
-    if (colorGreen.classList.contains("active_color")) {
-      container.setAttribute("data-theme", "green");
-    }
-    if (colorBlue.classList.contains("active_color")) {
-      container.setAttribute("data-theme", "blue");
-    }
-    if (colorPink.classList.contains("active_color")) {
-      container.setAttribute("data-theme", "pink");
-    }
-    if (colorOrange.classList.contains("active_color")) {
-      container.setAttribute("data-theme", "orange");
-    }
   }
 });
 

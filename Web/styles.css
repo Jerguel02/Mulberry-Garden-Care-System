@@ -16,28 +16,6 @@
       opacity: 0;
       border-radius: 100%;
     }
-
-    &.portfolio {
-      transition: all 0.8s ease;
-
-      .icon {
-        background-image: url(https://rafaelavlucas.github.io/assets/codepen/link.svg);
-      }
-    }
-
-    &.dribbble {
-      transition: all 0.3s ease;
-      .icon {
-        background-image: url(https://rafaelavlucas.github.io/assets/codepen/dribbble.svg);
-      }
-    }
-
-    &.linkedin {
-      transition: all 0.8s ease;
-      .icon {
-        background-image: url(https://rafaelavlucas.github.io/assets/codepen/linkedin.svg);
-      }
-    }
   }
 
   &:hover {
