@@ -132,6 +132,9 @@ bool lightStateChanging = false;
 bool pumpStateChanging = false;
 bool mistStateChanging = false;
 volatile bool touchDetected = false;
+bool prevAutoPumpOn = false;
+bool prevAutoMistSprayOn = false;
+bool prevAutoLightOn = false;
 bool autoPumpOn = false;
 bool autoMistSprayOn = false;
 bool autoLightOn = false;
@@ -146,10 +149,10 @@ bool manualMistSprayControlHandling = false;
 bool manualLightControlHandling = false;
 float currentPumpValue = 0.0;
 float currentMistValue = 0.0;
-float currentRegularPumpValue = 0.0;
+float currentLedValue = 0.0;
 float prevCurrentPumpValue = 0.0;
 float prevCurrentMistValue = 0.0;
-float prevCurrentRegularPumpValue = 0.0;
+float prevcurrentLedValue = 0.0;
 ////////////////////////////////////////////////////////////////////////////////
 //           Task Functions Replaced with Timer-Based Functions               //
 ////////////////////////////////////////////////////////////////////////////////
@@ -170,6 +173,7 @@ void controlLedFromTouch()
 {
   lightStateChanging = true;
   autoLightOn = !autoLightOn;
+  prevAutoLightOn = autoLightOn;
   //Firebase.setBool("/controls/auto_LIGHT", autoLightOn);
   readAutoLight();
   touchDetected = false;
@@ -179,6 +183,7 @@ void controlPumpFromTouch()
 {
   pumpStateChanging = true;
   autoPumpOn = !autoPumpOn;
+  prevAutoPumpOn = autoPumpOn;
   readAutoPump();
   touchDetected = false;
 }
@@ -187,6 +192,7 @@ void controlMistSprayFromTouch()
 {
   mistStateChanging = true;
   autoMistSprayOn = !autoMistSprayOn;
+  prevAutoMistSprayOn = autoMistSprayOn;
   readAutoMist();
   touchDetected = false;
 }
@@ -210,163 +216,9 @@ void clearIcon(int x, int y, int height, int width) {
       }
   }
 }
-void fetchPumpState() {
-  if (prev_wifiState && !manualPumpControlHandling)
-  {
-    Serial.println("Getting auto_PUMP from FB");
-    autoPumpOn = Firebase.getBool("/controls/auto_PUMP");
-    readAutoPump();
-  }
-  if ((prevWaterLevel <= 1.0) && (autoPumpOn))
-  {
-    Serial.println("AUTO: turn pumpOn");
-    pumpOn = true;
-    digitalWrite(PUMP_PIN, LOW);
-    pumpStateInterface();
-    if (prev_wifiState)
-    {
-      Firebase.setBool("/controls/pump", pumpOn);
-    }
-    
-  }
-  else if ((prevWaterLevel >= 2.3) && (autoPumpOn))
-  {
-    Serial.println("AUTO: turn pumpOff");
-    pumpOn = false;
-    digitalWrite(PUMP_PIN, HIGH);
-    pumpStateInterface();
-    if (prev_wifiState)
-    {
-      Firebase.setBool("/controls/pump", pumpOn);
-    }
-    
-  }
-  else if (!autoPumpOn && prev_wifiState && !manualPumpControlHandling)
-  {
-    Serial.println("Getting pump from FB");
-    bool pumpState = Firebase.getBool("/controls/pump");
-    Firebase.setBool("/controls/auto_PUMP", autoPumpOn);
-    if (pumpOn != pumpState) {
-        pumpOn = pumpState;
-        digitalWrite(PUMP_PIN, pumpOn ? LOW : HIGH);
-        Serial.printf("Pump state updated: %s\n", pumpOn ? "ON" : "OFF");
-        pumpStateInterface();
-    }
-  }
-  if (manualPumpControlHandling && prev_wifiState)
-  {
-    Serial.println("Setting pump to FB");
-    Firebase.setBool("/controls/pump", pumpOn);
-    manualPumpControlHandling = false;
-  } 
-}
 
 
-void fetchMistState() {
-  if (prev_wifiState && !manualMistSprayControlHandling)
-  {
-    Serial.println("Getting auto_MIST from FB");
-    autoMistSprayOn = Firebase.getBool("/controls/auto_MIST");
-    readAutoMist();
-  }
-  if ((humidity <= 60) && (autoMistSprayOn))
-  {
-    Serial.println("AUTO: turn mistSprayOn");
-    mistSprayOn = true;
-    mistSprayOnChange = true;
-    digitalWrite(MIST_PIN, LOW);
-    mistStateInterface();
-    if (prev_wifiState)
-    {
-      Firebase.setBool("/controls/mistSpray", mistSprayOn);
-    }
-    
-  }
-  else if ((humidity >= 80) && (autoMistSprayOn))
-  {
-    Serial.println("AUTO: turn mistSprayOff");
-    mistSprayOn = false;
-    mistSprayOnChange = true;
-    digitalWrite(MIST_PIN, HIGH);
-    mistStateInterface();
-    if (prev_wifiState)
-    {
-      Firebase.setBool("/controls/mistSpray", mistSprayOn);
-    }
-    
-  }
-  else if (!autoMistSprayOn && prev_wifiState && !manualMistSprayControlHandling)
-  {
-    Serial.println("Getting auto_MIST from FB");
-    bool mistSpayState = Firebase.getBool("/controls/mistSpray");
-    Firebase.setBool("/controls/auto_MIST", autoMistSprayOn);
-    if (mistSprayOn != mistSpayState) {
-        mistSprayOn = mistSpayState;
-        digitalWrite(MIST_PIN, mistSprayOn ? LOW : HIGH);
-        Serial.printf("Mist state updated: %s\n", mistSprayOn ? "ON" : "OFF");
-        mistStateInterface();
-    }
-  }
-  if (manualMistSprayControlHandling && prev_wifiState)
-  {
-    Serial.println("Setting mistSpray to FB");
-    Firebase.setBool("/controls/mistSpray", mistSprayOn);
-    manualMistSprayControlHandling = false;
-  } 
-}
 
-void fetchLightState() {
-  if (prev_wifiState && !manualLightControlHandling)
-  {
-    Serial.println("Getting auto_LIGHT from FB");
-    autoLightOn = Firebase.getBool("/controls/auto_LIGHT");
-    readAutoLight();
-  }
-  if ((light_detect) && (autoLightOn))
-  {
-    Serial.println("AUTO: turn lightOff");
-    lightOn = false;
-    lightOnChange = true;
-    digitalWrite(LIGHT_PIN, HIGH);
-    lightStateInterface();
-    if (prev_wifiState)
-    {
-      Firebase.setBool("/controls/light", lightOn);
-    }
-    
-  }
-  else if ((!light_detect) && (autoLightOn))
-  {
-    Serial.println("AUTO: turn lightOn");
-    lightOn = true;
-    lightOnChange = true;
-    digitalWrite(LIGHT_PIN, LOW);
-    lightStateInterface();
-    if (prev_wifiState)
-    {
-      Firebase.setBool("/controls/light", lightOn);
-    }
-    
-  }
-  else if (!autoLightOn && prev_wifiState && !manualLightControlHandling)
-  {
-    Serial.println("Getting light from FB");
-    bool lightState = Firebase.getBool("/controls/light");
-    Firebase.setBool("/controls/auto_LIGHT", autoLightOn);
-    if (lightOn != lightState) {
-        lightOn = lightState;
-        digitalWrite(LIGHT_PIN, lightOn ? LOW : HIGH);
-        Serial.printf("Light state updated: %s\n", lightOn ? "ON" : "OFF");
-        lightStateInterface();
-    }
-  }
-  if (manualLightControlHandling && prev_wifiState)
-  {
-    Serial.println("Setting light to FB");
-    Firebase.setBool("/controls/light", lightOn);
-    manualLightControlHandling = false;
-  } 
-}
 void pumpStateInterface()
 {
   drawIcon(90, 180, 45, 45, pumpOn ? switch_on_icon : switch_off_icon);
@@ -405,7 +257,7 @@ void manualMistSprayControlHandlingFunct()
 
 void lightStateInterface()
 {
-  Serial.println("light StateInf");
+  Serial.println("light StateInterface");
   drawIcon(390, 180, 45, 45, lightOn ? switch_on_icon : switch_off_icon);
   delay(1);
   readAutoLight();
@@ -416,15 +268,15 @@ void lightStateInterface()
 void readACS()
 {
   //currentPumpValue = currentPUMP.readCurrent();
-  currentPumpValue = currentPUMP.readCurrent();
+  currentPumpValue = (pumpOn ? currentPUMP.readCurrent() : 0);
   //currentPumpValue = analogRead(ACS_PUMP);
   updateSensorValue(currentPumpValue, prevCurrentPumpValue, "May bom: ", 250, 270);
-  //currentRegularPumpValue = currentREGULAR.readCurrent();
-  currentRegularPumpValue = currentREGULAR.readCurrent();
-  //currentRegularPumpValue = analogRead(ACS_MIST);
-  updateSensorValue(currentRegularPumpValue, prevCurrentRegularPumpValue, "LED: ", 250, 290);
+  //currentLedValue = currentREGULAR.readCurrent();
+  currentLedValue = (lightOn ? currentREGULAR.readCurrent() : 0);
+  //currentLedValue = analogRead(ACS_MIST);
+  updateSensorValue(currentLedValue, prevcurrentLedValue, "LED: ", 250, 290);
   //currentMistValue = currentMIST.readCurrent();
-  currentMistValue = currentMIST.readCurrent();
+  currentMistValue = (mistSprayOn ? currentMIST.readCurrent() : 0);
   //currentMistValue = analogRead(ACS_MIST);
   updateSensorValue(currentMistValue, prevCurrentMistValue, "Phun suong: ", 250, 310);
 
@@ -456,12 +308,36 @@ void readHumidity() {
         updateSensorValue(humidity, prevHumidity, "Do am: ", 10, 30);
         Serial.printf("Humidity: %.2f\n", humidity);
     }
+    if ((humidity <= 60) && (autoMistSprayOn))
+    {
+      mistSprayOn = true;
+      digitalWrite(MIST_PIN, LOW);
+      mistStateInterface();
+    }
+    else if ((humidity >= 80) && (autoMistSprayOn))
+    {
+      mistSprayOn = false;
+      digitalWrite(MIST_PIN, HIGH);
+      mistStateInterface();
+    }
 }
 
 void readWaterLevel() {
     waterLevel = waterSensor.getWaterLevelCm(); 
     updateSensorValue(waterLevel, prevWaterLevel, "Muc nuoc (cm): ", 160, 10);
     Serial.printf("Water Level: %.2f\n", waterLevel);
+    if ((prevWaterLevel <= 1.0) && (autoPumpOn))
+    {
+      pumpOn = true;
+      digitalWrite(PUMP_PIN, LOW);
+      pumpStateInterface();
+    }
+    else if ((prevWaterLevel >= 2.3) && (autoPumpOn))
+    {
+      pumpOn = false;
+      digitalWrite(PUMP_PIN, HIGH);
+      pumpStateInterface(); 
+    }
 
 }
 
@@ -526,26 +402,31 @@ void fetchSensor_Task(void *pvParameters)
   {
     if (!touchDetected)
     {
+      readACS();
       Serial.print("Task fetchSensor_Task is running on core: ");
       Serial.println(xPortGetCoreID());
       Serial.println("readAutoPUMP...");
 
-      Serial.println("readTemperature...");
-      readTemperature();
 
-      Serial.println("readHumidity...");
-      readHumidity();
-
+      
       Serial.println("readWaterLevel...");
       readWaterLevel();
 
       Serial.println("readLightDetect...");
       readLightDetect();
+      WiFi.disconnect(true); // Tắt WiFi
+      delay(500);
       
+      Serial.println("readTemperature...");
+      readTemperature();
+      Serial.println("readHumidity...");
+      readHumidity();
       Serial.println("readPHValue...");
       readPHValue();
+      WiFi.begin(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str());
       
-      readACS();
+      
+
 
     }
     vTaskDelay(5000 / portTICK_PERIOD_MS); 
@@ -578,8 +459,7 @@ void  fetchFirebase_Task(void *pvParameters)
       drawWifiIcon();
       lastCheckWifi = millis();
     }
-    //if (!touchDetected)
-    //{ 
+
       if (prev_wifiState)
       {
         if (lightOnChange)
@@ -597,38 +477,71 @@ void  fetchFirebase_Task(void *pvParameters)
           Firebase.setBool("/controls/pump", pumpOn);
           pumpOnChange = false;
         }
-      }
-      if (pumpStateChanging)
-      {
-        Firebase.setBool("/controls/auto_PUMP", autoPumpOn);
-        fetchPumpState();
-        pumpStateChanging = false;
-      }
-      if (lightStateChanging)
-      {
-        Serial.println("Push LightState...");
-        Firebase.setBool("/controls/auto_LIGHT", autoLightOn);
-        lightStateChanging = false;
-      }
-      if (mistStateChanging)
-      {
-        Serial.println("Push MistState...");
-        Firebase.setBool("/controls/auto_MIST", autoMistSprayOn);
-        mistStateChanging = false;
-      }
-      Serial.println("Entering fetchLightState");
-      fetchLightState();
-      Serial.println("Entering fetchMistState");
-      fetchMistState();
-      Serial.println("Entering fetchPumpState");
-      fetchPumpState();
-      /*Firebase.setFloat("/sensors/currentPumpValue", currentPumpValue);
-      Firebase.setFloat("/sensors/currentMistValue", currentMistValue);
-      Firebase.setFloat("/sensors/currentRegularPumpValue", currentRegularPumpValue);*/
-      
-      
-      if (prev_wifiState)
-      {
+        if (pumpStateChanging)
+        {
+          Firebase.setBool("/controls/auto_PUMP", autoPumpOn);
+          pumpStateChanging = false;
+        }
+        if (lightStateChanging)
+        {
+          Serial.println("Push LightState...");
+          Firebase.setBool("/controls/auto_LIGHT", autoLightOn);
+          lightStateChanging = false;
+        }
+        if (mistStateChanging)
+        {
+          Serial.println("Push MistState...");
+          Firebase.setBool("/controls/auto_MIST", autoMistSprayOn);
+          mistStateChanging = false;
+        }
+        autoPumpOn = Firebase.getBool("/controls/auto_PUMP");
+        if (autoPumpOn != prevAutoPumpOn)
+        {
+          readAutoPump();
+          prevAutoPumpOn = autoPumpOn;
+        }
+        autoLightOn = Firebase.getBool("/controls/auto_LIGHT");
+        if (autoLightOn != prevAutoLightOn)
+        {
+          readAutoLight();
+          prevAutoLightOn = autoLightOn;
+        }
+        autoMistSprayOn = Firebase.getBool("/controls/auto_MIST");
+        if (autoMistSprayOn != prevAutoMistSprayOn)
+        {
+          readAutoMist();
+          prevAutoMistSprayOn = autoMistSprayOn;
+        }
+        if (!lightOnChange)
+        {
+          bool lightState = Firebase.getBool("/controls/light");
+          if (lightOn != lightState) {
+            lightOn = lightState;
+            digitalWrite(LIGHT_PIN, lightOn ? LOW : HIGH);
+            Serial.printf("Light state updated: %s\n", lightOn ? "ON" : "OFF");
+            lightStateInterface();
+          }
+        }
+        if (!pumpOnChange)
+        {
+          bool pumpState = Firebase.getBool("/controls/pump");
+          if (pumpOn != pumpState) {
+            pumpOn = pumpState;
+            digitalWrite(PUMP_PIN, pumpOn ? LOW : HIGH);
+            pumpStateInterface();
+          }
+        }
+        if (!mistSprayOnChange)
+        {
+          bool mistSpayState = Firebase.getBool("/controls/mistSpray");
+          if (mistSprayOn != mistSpayState) {
+            mistSprayOn = mistSpayState;
+            digitalWrite(MIST_PIN, mistSprayOn ? LOW : HIGH);
+            Serial.printf("Mist state updated: %s\n", mistSprayOn ? "ON" : "OFF");
+            mistStateInterface();
+          }
+        }
+
         switch (processFirebase)
         {
           case 0:
@@ -660,10 +573,14 @@ void  fetchFirebase_Task(void *pvParameters)
             break;
         }
       }
-    //}
+      
+      
+  
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
+
+
 void checkTouch_Task(void *pvParameters) {
   while (true) {
     ts.read();  
@@ -898,6 +815,22 @@ void setup() {
     tft.print("Connected with IP: ");
     tft.println(WiFi.localIP());
   }
+
+  tft.println();
+  tft.print("Get data from Firebase...");
+  if (WiFi.status() == WL_CONNECTED)
+  { 
+    autoPumpOn = Firebase.getBool("/controls/auto_PUMP");
+    prevAutoPumpOn = autoPumpOn;
+    autoLightOn = Firebase.getBool("/controls/auto_LIGHT");
+    prevAutoLightOn = autoLightOn;
+    autoMistSprayOn = Firebase.getBool("/controls/auto_MIST");
+    prevAutoMistSprayOn = autoMistSprayOn;
+    lightOn = Firebase.getBool("/controls/light");
+    pumpOn = Firebase.getBool("/controls/pump");
+    mistSprayOn = Firebase.getBool("/controls/mistSpray");
+  }
+  tft.println("Done!");
   tft.println();
   tft.print("Calibrating Pump motor...");
   currentPUMP.calibrateOffset();
@@ -910,7 +843,6 @@ void setup() {
   tft.print("Calibrating LED...");
   currentREGULAR.calibrateOffset();
   tft.println("Done!");
-  tft.println();
   tft.println();
   tft.print("Setting Up IO...");
   pinMode(PUMP_PIN, OUTPUT);
@@ -932,8 +864,16 @@ void setup() {
   drawControls();
   drawFooter();
   drawIcon(479 - 26, 0, 26, 26, nowifi_icon);
-
   delay(1000);
+  mistStateInterface();
+  readAutoPump();
+  readAutoLight();
+  readAutoMist();
+  lightStateInterface();
+  pumpStateInterface();
+  digitalWrite(PUMP_PIN, pumpOn ? LOW : HIGH);
+  digitalWrite(LIGHT_PIN, lightOn ? LOW : HIGH);
+  digitalWrite(MIST_PIN, mistSprayOn ? LOW : HIGH);
   BaseType_t result1 = xTaskCreatePinnedToCore(
     fetchSensor_Task,       
     "fetchSensorState",          

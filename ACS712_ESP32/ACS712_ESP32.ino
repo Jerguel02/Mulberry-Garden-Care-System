@@ -1,8 +1,8 @@
 #include "ACS712_ESP32.h"
 
-#define ACS_PIN1  A0 
-#define ACS_PIN2  A1
-#define ACS_PIN3  A2 
+#define ACS_PIN1  32 
+#define ACS_PIN2  34
+#define ACS_PIN3  33
 
 ACS712 acsSensor1(ACS_PIN1, 5.0, 1024, 0.066); // Khởi tạo đối tượng ACS712 (30A)
 ACS712 acsSensor2(ACS_PIN2, 5.0, 1024, 0.066); // Khởi tạo đối tượng ACS712 (30A)

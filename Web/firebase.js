@@ -347,7 +347,6 @@ async function fetchWeatherData() {
     return data.days[0].hours; // Trả về dữ liệu thời tiết theo giờ
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu thời tiết:", error);
-    alert("Không thể lấy dữ liệu thời tiết!");
     return [];
   }
 }
@@ -378,12 +377,30 @@ function displayWeather(hourData) {
     <p style = "font-size: 18px"><strong>Xác suất mưa:</strong> ${hourData.precipprob}%</p>
     <p style = "font-size: 18px"><strong>Thời tiết:</strong> ${hourData.conditions}</p>
   `;
+  update(ref(db, `forecast`), {
+    time: hourData.datetime,
+    temp_humid: hourData.temp + "°C/" + hourData.humidity + "%",
+    weather: hourData.conditions,
+  }).catch((error) => console.error("Lỗi Firebase:", error));
 }
 
 async function initializeWeatherForecast() {
   const hours = await fetchWeatherData();
+  if (hours.length === 0) return; // Nếu không có dữ liệu, thoát khỏi hàm
+
+  // Khởi tạo dropdown và chọn thời gian mặc định là 00:00:00
   populateTimeSelect(hours);
 
+  // Tìm dữ liệu giờ 00:00:00
+  const defaultHour = hours.find((hour) => hour.datetime === "00:00:00");
+
+  // Hiển thị dữ liệu mặc định
+  if (defaultHour) {
+    displayWeather(defaultHour);
+    document.getElementById("timeSelect").value = hours.indexOf(defaultHour); // Đặt giá trị mặc định trong dropdown
+  }
+
+  // Lắng nghe sự thay đổi trong dropdown
   const timeSelect = document.getElementById("timeSelect");
   timeSelect.addEventListener("change", (event) => {
     const selectedHour = hours[event.target.value];
@@ -391,4 +408,5 @@ async function initializeWeatherForecast() {
   });
 }
 
+// Khởi động
 initializeWeatherForecast();
