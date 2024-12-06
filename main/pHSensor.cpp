@@ -13,8 +13,6 @@ void PHSensor::begin() {
 float PHSensor::readPH() {
     int analogValue = analogRead(_pin);
     float voltage = analogValue * (3.3 / 4095.0);
-    Serial.print("Voltage: ");
-    Serial.println(voltage);
     float pHValue = 7 + ((voltage - 1.65) / _slope); 
     pHValue += _offset;
     return pHValue;

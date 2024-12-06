@@ -20,6 +20,8 @@ int ACS712::readAverageADC(int numSamples) {
 
 float ACS712::readCurrent() {
     int adcValue = readAverageADC(10); 
+    Serial.print("ADC: ");
+    Serial.println(adcValue);
     int adjustedValue = adcValue - _offsetValue;
     float voltage = (adjustedValue * _vref) / _adcMax;
     return (abs(voltage / _sensitivity) >= 0.2) ? abs(voltage / _sensitivity) : 0;

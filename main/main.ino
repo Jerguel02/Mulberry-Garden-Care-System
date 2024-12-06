@@ -44,7 +44,7 @@
 
 #define DHTPIN                  4
 #define DHTTYPE               DHT11
-#define PH_SENSOR_PIN           25
+#define PH_SENSOR_PIN           39
 #define WATER_LEVEL_SENSOR_PIN  35
 #define WATER_MAXIMUM_HEIGHT    4.0
 #define PUMP_PIN                17
@@ -128,9 +128,9 @@ Firebase Firebase(DATABASE_URL);
 bool pumpOn = false;
 bool lightOn = false;
 bool mistSprayOn = false;
-bool lightStateChanging = false;
-bool pumpStateChanging = false;
-bool mistStateChanging = false;
+bool autoLightStateChange = false;
+bool autoPumpStateChange = false;
+bool autoMistStateChange = false;
 volatile bool touchDetected = false;
 bool prevAutoPumpOn = false;
 bool prevAutoMistSprayOn = false;
@@ -171,7 +171,7 @@ bool isIconTouched(int touchX, int touchY, int iconX, int iconY, int iconW, int 
 
 void controlLedFromTouch()
 {
-  lightStateChanging = true;
+  autoLightStateChange = true;
   autoLightOn = !autoLightOn;
   prevAutoLightOn = autoLightOn;
   //Firebase.setBool("/controls/auto_LIGHT", autoLightOn);
@@ -181,7 +181,7 @@ void controlLedFromTouch()
 }
 void controlPumpFromTouch()
 {
-  pumpStateChanging = true;
+  autoPumpStateChange = true;
   autoPumpOn = !autoPumpOn;
   prevAutoPumpOn = autoPumpOn;
   readAutoPump();
@@ -190,7 +190,7 @@ void controlPumpFromTouch()
 
 void controlMistSprayFromTouch()
 {
-  mistStateChanging = true;
+  autoMistStateChange = true;
   autoMistSprayOn = !autoMistSprayOn;
   prevAutoMistSprayOn = autoMistSprayOn;
   readAutoMist();
@@ -223,19 +223,17 @@ void pumpStateInterface()
 {
   drawIcon(90, 180, 45, 45, pumpOn ? switch_on_icon : switch_off_icon);
   readAutoPump();
-
-  
-
 }
 
 void manualPumpControlHandlingFunct()
 {
+  Serial.println("Manual Pump");
   autoPumpOn = false;
   manualPumpControlHandling = true;
   pumpOn = !pumpOn;
   digitalWrite(PUMP_PIN, pumpOn ? LOW : HIGH);
   pumpStateInterface();
-  
+  delay(2000);
 }
 
 void mistStateInterface()
@@ -257,7 +255,6 @@ void manualMistSprayControlHandlingFunct()
 
 void lightStateInterface()
 {
-  Serial.println("light StateInterface");
   drawIcon(390, 180, 45, 45, lightOn ? switch_on_icon : switch_off_icon);
   delay(1);
   readAutoLight();
@@ -298,7 +295,6 @@ void readTemperature() {
     temperature = dht.readTemperature();
     if (!isnan(temperature)) {
         updateSensorValue(temperature, prevTemperature, "Nhiet do: ", 10, 10);
-        Serial.printf("Temperature: %.2f\n", temperature);
     }
 }
 
@@ -306,37 +302,45 @@ void readHumidity() {
     humidity = dht.readHumidity();
     if (!isnan(humidity)) {
         updateSensorValue(humidity, prevHumidity, "Do am: ", 10, 30);
-        Serial.printf("Humidity: %.2f\n", humidity);
     }
-    if ((humidity <= 60) && (autoMistSprayOn))
+    if (autoMistSprayOn)
     {
-      mistSprayOn = true;
-      digitalWrite(MIST_PIN, LOW);
-      mistStateInterface();
-    }
-    else if ((humidity >= 80) && (autoMistSprayOn))
-    {
-      mistSprayOn = false;
-      digitalWrite(MIST_PIN, HIGH);
-      mistStateInterface();
+      if ((humidity <= 60))
+      {
+        mistSprayOn = true;
+        digitalWrite(MIST_PIN, LOW);
+        mistStateInterface();
+      }
+      else if ((humidity >= 80))
+      {
+        mistSprayOn = false;
+        digitalWrite(MIST_PIN, HIGH);
+        mistStateInterface();
+      }
     }
 }
 
 void readWaterLevel() {
     waterLevel = waterSensor.getWaterLevelCm(); 
     updateSensorValue(waterLevel, prevWaterLevel, "Muc nuoc (cm): ", 160, 10);
-    Serial.printf("Water Level: %.2f\n", waterLevel);
-    if ((prevWaterLevel <= 1.0) && (autoPumpOn))
+    if (autoPumpOn)
     {
-      pumpOn = true;
-      digitalWrite(PUMP_PIN, LOW);
-      pumpStateInterface();
-    }
-    else if ((prevWaterLevel >= 2.3) && (autoPumpOn))
-    {
-      pumpOn = false;
-      digitalWrite(PUMP_PIN, HIGH);
-      pumpStateInterface(); 
+      if ((prevWaterLevel <= 1.0))
+      {
+        Serial.println("Water Level under 1cm");
+        pumpOn = true;
+        digitalWrite(PUMP_PIN, LOW);
+        pumpStateInterface();
+        delay(2000);
+      }
+      else if ((prevWaterLevel >= 2.3))
+      {
+        Serial.println("Water Level above 2.3cm");
+        pumpOn = false;
+        digitalWrite(PUMP_PIN, HIGH);
+        pumpStateInterface(); 
+        delay(2000);
+      }
     }
 
 }
@@ -344,13 +348,11 @@ void readWaterLevel() {
 void readPHValue() {
   pHValue = pHSensor.readPH(); 
   updateSensorValue(pHValue, prevPHValue, "pH: ", 160, 30);
-  Serial.printf("pH Value: %.2f\n", pHValue);
 }
 
 void readLightDetect() {
     light_detect = lightSensor.isLightDetected();
     updateBoolSensorValue(light_detect, prevLightDetect, "Anh sang: ", 310, 10);
-    Serial.printf("Light Detect: %s\n", light_detect ? "True" : "False");
     if (autoLightOn)
     {
       lightOn = light_detect ? false : true;
@@ -396,6 +398,8 @@ void updateBoolSensorValue(bool newValue, bool& prevValue, const char* label, in
     tft.println(newValue ? "True" : "False");
     prevValue = newValue;
 }
+
+
 void fetchSensor_Task(void *pvParameters)
 {
   while (true)
@@ -403,33 +407,15 @@ void fetchSensor_Task(void *pvParameters)
     if (!touchDetected)
     {
       readACS();
-      Serial.print("Task fetchSensor_Task is running on core: ");
-      Serial.println(xPortGetCoreID());
-      Serial.println("readAutoPUMP...");
-
-
-      
-      Serial.println("readWaterLevel...");
       readWaterLevel();
-
-      Serial.println("readLightDetect...");
       readLightDetect();
-      WiFi.disconnect(true); // Tắt WiFi
-      delay(500);
-      
-      Serial.println("readTemperature...");
+      //WiFi.disconnect(true);
       readTemperature();
-      Serial.println("readHumidity...");
       readHumidity();
-      Serial.println("readPHValue...");
       readPHValue();
-      WiFi.begin(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str());
-      
-      
-
-
+      //WiFi.begin(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str());
     }
-    vTaskDelay(5000 / portTICK_PERIOD_MS); 
+    vTaskDelay(8000 / portTICK_PERIOD_MS); 
   }
 }
 void drawWifiIcon()
@@ -460,122 +446,134 @@ void  fetchFirebase_Task(void *pvParameters)
       lastCheckWifi = millis();
     }
 
-      if (prev_wifiState)
+    if (prev_wifiState)
+    {
+      if (lightOnChange)
       {
-        if (lightOnChange)
-        {
-          Firebase.setBool("/controls/light", lightOn);
-          lightOnChange = false;
+        Serial.println("Set bool light");
+        Firebase.setBool("/controls/light", lightOn);
+        lightOnChange = false;
+      }
+      else
+      {
+        Serial.println("Get bool light");
+        bool lightState = Firebase.getBool("/controls/light");
+        if (lightOn != lightState) {
+          lightOn = lightState;
+          digitalWrite(LIGHT_PIN, lightOn ? LOW : HIGH);
+          Serial.printf("Light state updated: %s\n", lightOn ? "ON" : "OFF");
+          lightStateInterface();
         }
-        if (mistSprayOnChange)
-        {
-          Firebase.setBool("/controls/mistSpray", mistSprayOn);
-          mistSprayOnChange = false;
+      }
+      if (mistSprayOnChange)
+      {
+        Serial.println("Set bool mist spray");
+        Firebase.setBool("/controls/mistSpray", mistSprayOn);
+        mistSprayOnChange = false;
+      }
+      else
+      {
+        Serial.println("Get bool mist spray");
+        bool mistSpayState = Firebase.getBool("/controls/mistSpray");
+        if (mistSprayOn != mistSpayState) {
+          mistSprayOn = mistSpayState;
+          digitalWrite(MIST_PIN, mistSprayOn ? LOW : HIGH);
+          Serial.printf("Mist state updated: %s\n", mistSprayOn ? "ON" : "OFF");
+          mistStateInterface();
         }
-        if (pumpOnChange)
-        {
-          Firebase.setBool("/controls/pump", pumpOn);
-          pumpOnChange = false;
+      }
+      if (pumpOnChange)
+      {
+        Serial.println("Set bool pump");
+        Firebase.setBool("/controls/pump", pumpOn);
+        pumpOnChange = false;
+      }
+      else
+      {
+        Serial.println("Get bool pump");
+        bool pumpState = Firebase.getBool("/controls/pump");
+        if (pumpOn != pumpState) {
+          pumpOn = pumpState;
+          digitalWrite(PUMP_PIN, pumpOn ? LOW : HIGH);
+          pumpStateInterface();
+          Serial.print("Turn pump by Firebase: ");
+          Serial.println(pumpState? "TRUE" : "FALSE");
         }
-        if (pumpStateChanging)
-        {
-          Firebase.setBool("/controls/auto_PUMP", autoPumpOn);
-          pumpStateChanging = false;
-        }
-        if (lightStateChanging)
-        {
-          Serial.println("Push LightState...");
-          Firebase.setBool("/controls/auto_LIGHT", autoLightOn);
-          lightStateChanging = false;
-        }
-        if (mistStateChanging)
-        {
-          Serial.println("Push MistState...");
-          Firebase.setBool("/controls/auto_MIST", autoMistSprayOn);
-          mistStateChanging = false;
-        }
+      }
+      if (autoPumpStateChange)
+      {
+        Serial.println("Set bool auto pump");
+        Firebase.setBool("/controls/auto_PUMP", autoPumpOn);
+        autoPumpStateChange = false;
+      }
+      else
+      {
+        Serial.println("Get bool auto pump");
         autoPumpOn = Firebase.getBool("/controls/auto_PUMP");
         if (autoPumpOn != prevAutoPumpOn)
         {
           readAutoPump();
           prevAutoPumpOn = autoPumpOn;
         }
+      }
+      if (autoLightStateChange)
+      {
+        Serial.println("Set bool auto light");
+        Firebase.setBool("/controls/auto_LIGHT", autoLightOn);
+        autoLightStateChange = false;
+      }
+      else
+      {
+        Serial.println("Get bool auto light");
         autoLightOn = Firebase.getBool("/controls/auto_LIGHT");
         if (autoLightOn != prevAutoLightOn)
         {
           readAutoLight();
           prevAutoLightOn = autoLightOn;
         }
+      }
+      if (autoMistStateChange)
+      {
+        Serial.println("Set bool auto mist spray");
+        Firebase.setBool("/controls/auto_MIST", autoMistSprayOn);
+        autoMistStateChange = false;
+      }
+      else
+      {
+        Serial.println("Get bool auto mist spray");
         autoMistSprayOn = Firebase.getBool("/controls/auto_MIST");
         if (autoMistSprayOn != prevAutoMistSprayOn)
         {
           readAutoMist();
           prevAutoMistSprayOn = autoMistSprayOn;
         }
-        if (!lightOnChange)
-        {
-          bool lightState = Firebase.getBool("/controls/light");
-          if (lightOn != lightState) {
-            lightOn = lightState;
-            digitalWrite(LIGHT_PIN, lightOn ? LOW : HIGH);
-            Serial.printf("Light state updated: %s\n", lightOn ? "ON" : "OFF");
-            lightStateInterface();
-          }
-        }
-        if (!pumpOnChange)
-        {
-          bool pumpState = Firebase.getBool("/controls/pump");
-          if (pumpOn != pumpState) {
-            pumpOn = pumpState;
-            digitalWrite(PUMP_PIN, pumpOn ? LOW : HIGH);
-            pumpStateInterface();
-          }
-        }
-        if (!mistSprayOnChange)
-        {
-          bool mistSpayState = Firebase.getBool("/controls/mistSpray");
-          if (mistSprayOn != mistSpayState) {
-            mistSprayOn = mistSpayState;
-            digitalWrite(MIST_PIN, mistSprayOn ? LOW : HIGH);
-            Serial.printf("Mist state updated: %s\n", mistSprayOn ? "ON" : "OFF");
-            mistStateInterface();
-          }
-        }
-
-        switch (processFirebase)
-        {
-          case 0:
-            Serial.println("readTemperature in Task...");
-            Firebase.setFloat("/sensors/temperature", prevTemperature);
-            
-            processFirebase++;
-            break;
-          case 1:
-            Serial.println("readHumidity in Task...");
-            Firebase.setFloat("/sensors/humidity", prevHumidity);
-            processFirebase++;
-            break;
-          case 2:
-            Serial.println("readWaterLevel in Task...");
-            Firebase.setFloat("/sensors/waterLevel", prevWaterLevel);
-            processFirebase++;
-            break;
-          case 3:
-            Serial.println("readPHValue in Task...");
-            Firebase.setFloat("/sensors/phValue", prevPHValue);
-            processFirebase++;
-            break;
-          case 4:
-            Serial.println("readLightDetect in Task...");
-            Firebase.setFloat("/sensors/lightDetect", prevLightDetect);
-
-            processFirebase = 0;
-            break;
-        }
       }
-      
-      
-  
+
+      switch (processFirebase)
+      {
+        case 0:
+          Firebase.setFloat("/sensors/temperature", prevTemperature);
+          
+          processFirebase++;
+          break;
+        case 1:
+          Firebase.setFloat("/sensors/humidity", prevHumidity);
+          processFirebase++;
+          break;
+        case 2:
+          Firebase.setFloat("/sensors/waterLevel", prevWaterLevel);
+          processFirebase++;
+          break;
+        case 3:
+          Firebase.setFloat("/sensors/phValue", prevPHValue);
+          processFirebase++;
+          break;
+        case 4:
+          Firebase.setFloat("/sensors/lightDetect", prevLightDetect);
+          processFirebase = 0;
+          break;
+      }
+    }
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
@@ -605,7 +603,7 @@ void checkTouch_Task(void *pvParameters) {
         {
           //readAutoPump();
           Serial.println("Entering auto control pump");
-          pumpStateChanging = true;
+          autoPumpStateChange = true;
           controlPumpFromTouch();
         }
         else if (isIconTouched(cor_x, cor_y, 90, 180, 45, 45))
@@ -613,7 +611,7 @@ void checkTouch_Task(void *pvParameters) {
           pumpOnChange = true;
           Serial.println(("Control pump!"));
           manualPumpControlHandlingFunct();
-          //pumpStateChanging = true;
+          //autoPumpStateChange = true;
         }
         else if (isIconTouched(cor_x, cor_y, 240, 130, 45, 45))
         {
@@ -805,6 +803,7 @@ void setup() {
     }
 
   }
+  
   if (WiFi.status() == WL_CONNECTED)
   {
     Serial.println();
@@ -846,11 +845,8 @@ void setup() {
   tft.println();
   tft.print("Setting Up IO...");
   pinMode(PUMP_PIN, OUTPUT);
-  digitalWrite(PUMP_PIN, HIGH);
   pinMode(LIGHT_PIN, OUTPUT);
-  digitalWrite(LIGHT_PIN, HIGH);
   pinMode(MIST_PIN, OUTPUT);
-  digitalWrite(MIST_PIN, HIGH);
   delay(100);
   tft.println("Done!");
   tft.println();
