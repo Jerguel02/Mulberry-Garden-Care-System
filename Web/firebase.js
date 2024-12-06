@@ -208,15 +208,13 @@ document.addEventListener("DOMContentLoaded", () => {
 window.addEventListener("load", (event) => {
   var toggles = document.querySelectorAll(".toggle");
 
-  // Đọc trạng thái ban đầu từ Firebase khi web khởi động
   initializeToggleStateOnce();
   listenToFirebaseChanges();
-  // Lắng nghe sự kiện click trên các toggle
+
   toggles.forEach(function (el) {
     el.addEventListener("click", activateToggle);
   });
 
-  // Hàm xử lý khi nhấn vào toggle
   function activateToggle(event) {
     var currentToggle = event.target;
     var toggleLabel = currentToggle.nextElementSibling;
@@ -226,9 +224,7 @@ window.addEventListener("load", (event) => {
       return;
     }
 
-    // Kiểm tra xem toggle có phải là "Trạng thái" không
     if (toggleLabel.textContent.trim() === "Trạng thái") {
-      // Tìm nút "Tự động" liên quan trong cùng một adjust-card
       var adjustCard = currentToggle.closest(".adjust-card");
       if (adjustCard) {
         var autoLabel = Array.from(
@@ -239,10 +235,9 @@ window.addEventListener("load", (event) => {
           var autoToggle = autoLabel.previousElementSibling;
           if (autoToggle && autoToggle.classList.contains("on")) {
             autoToggle.classList.remove("on");
-            autoLabel.style.color = "#b1b2d6"; // Màu mặc định
+            autoLabel.style.color = "#b1b2d6";
             console.log("Tự động chuyển về tắt!");
 
-            // Đẩy trạng thái "Tự động" về tắt lên Firebase
             var autoToggleId = autoToggle.id;
             if (autoToggleId) {
               var [device, feature] = autoToggleId.split("-");
@@ -255,7 +250,6 @@ window.addEventListener("load", (event) => {
       }
     }
 
-    // Đổi trạng thái của toggle hiện tại
     var newState = !currentToggle.classList.contains("on");
     if (newState) {
       currentToggle.classList.add("on");
@@ -320,7 +314,6 @@ window.addEventListener("load", (event) => {
             const isActive = features;
             const toggleLabel = toggleElement.nextElementSibling;
 
-            // Cập nhật giao diện theo trạng thái Firebase
             if (isActive) {
               toggleElement.classList.add("on");
               if (toggleLabel) toggleLabel.style.color = "#4caf50";
@@ -344,7 +337,7 @@ async function fetchWeatherData() {
   try {
     const response = await fetch(apiUrl);
     const data = await response.json();
-    return data.days[0].hours; // Trả về dữ liệu thời tiết theo giờ
+    return data.days[0].hours;
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu thời tiết:", error);
     return [];
@@ -386,21 +379,16 @@ function displayWeather(hourData) {
 
 async function initializeWeatherForecast() {
   const hours = await fetchWeatherData();
-  if (hours.length === 0) return; // Nếu không có dữ liệu, thoát khỏi hàm
-
-  // Khởi tạo dropdown và chọn thời gian mặc định là 00:00:00
+  if (hours.length === 0) return;
   populateTimeSelect(hours);
 
-  // Tìm dữ liệu giờ 00:00:00
   const defaultHour = hours.find((hour) => hour.datetime === "00:00:00");
 
-  // Hiển thị dữ liệu mặc định
   if (defaultHour) {
     displayWeather(defaultHour);
-    document.getElementById("timeSelect").value = hours.indexOf(defaultHour); // Đặt giá trị mặc định trong dropdown
+    document.getElementById("timeSelect").value = hours.indexOf(defaultHour);
   }
 
-  // Lắng nghe sự thay đổi trong dropdown
   const timeSelect = document.getElementById("timeSelect");
   timeSelect.addEventListener("change", (event) => {
     const selectedHour = hours[event.target.value];

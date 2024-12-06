@@ -24,5 +24,5 @@ float ACS712::readCurrent() {
     Serial.println(adcValue);
     int adjustedValue = adcValue - _offsetValue;
     float voltage = (adjustedValue * _vref) / _adcMax;
-    return (abs(voltage / _sensitivity) >= 0.2) ? abs(voltage / _sensitivity) : 0;
+    return (abs(voltage / _sensitivity) >= 0.55) ? abs(voltage / _sensitivity) : 0;
 }

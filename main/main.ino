@@ -2,8 +2,8 @@
 ****************************************************MỘT SỐ LƯU Ý****************************************************************
 *******Sơ đồ chân:                                                                                                            **
 **TFT Pin         CTP_INT    CTP_SDA   CTP_RTS   CTP_SCL   SDO(MISO)   LED   SCK   SDI(MOSI)   LCD_RS/DC    LCD_RST   LCD_CS  **
-**GPIO               X        22        19        0          12       X     14       13           2         27        15     **
-**Sensor: Light Sensor: Analog Pin:  26  |pH Sensor:     25  | DHT11: 4      | ACS1: 32      |ACS3: 33      |LIGHT_PIN: 16    **
+**GPIO               X        22        19        0          12       X     14       13           2         27        15      **
+**Sensor: Light Sensor: Analog Pin:  26  |pH Sensor:  39 (VN)  | DHT11: 4      | ACS1: 32      |ACS3: 33      |LIGHT_PIN: 16  **
 **                      Digital Pin: 5   |Water Sensor:  35  | PUMP_PIN: 17  | ACS2: 34      |MIST_PIN: 23                    **
 ********Mục lục mã nguồn:                                                                                                     **
 **Phần tiền xử lý                                                                                                             ** 
@@ -35,6 +35,7 @@
 #include "pHSensor.h"
 #include "WiFi.h"
 #include "ACS712_ESP32.h"
+#include "ArduinoJson.h"
 //#include <esp_task_wdt.h>
 // Firebase config
 #define DATABASE_URL "smartgarden-86bab-default-rtdb.firebaseio.com"
@@ -73,9 +74,9 @@ DHT dht(DHTPIN, DHTTYPE);
 /*CurrentSensor currentPUMP(ACS_PUMP, 1000.0, 2000.0, 3.3, 0, 0.066);
 CurrentSensor currentMIST(ACS_MIST, 1000.0, 2000.0, 3.3, 0, 0.066);
 CurrentSensor currentREGULAR(ACS_REGULAR, 1000.0, 2000.0, 3.3, 0, 0.066);*/
-ACS712 currentPUMP(ACS_PUMP, 5.0, 4095, 0.066);
-ACS712 currentMIST(ACS_MIST, 5.0, 4095, 0.066);
-ACS712 currentREGULAR(ACS_REGULAR, 5.0, 4095, 0.066);
+ACS712 currentPUMP(ACS_PUMP, 3.3, 4095, 0.066);
+ACS712 currentMIST(ACS_MIST, 3.3, 4095, 0.066);
+ACS712 currentREGULAR(ACS_REGULAR, 3.3, 4095, 0.066);
 ////////////////////////////////////////////////////////////////////////////////
 //                Phần khai báo biến/Var Declaration Section                  //    
 ////////////////////////////////////////////////////////////////////////////////
@@ -110,6 +111,7 @@ bool isCollectingDataFromFB = false;
 volatile unsigned long lastTouchInterruptTime = 0;
 volatile bool interruptFlag = false;
 bool isControlling = false;
+bool touchOK = false;
 int cor_x = 0;
 int cor_y = 0;
 TaskHandle_t xfetchStateTaskHandle;
@@ -131,6 +133,7 @@ bool mistSprayOn = false;
 bool autoLightStateChange = false;
 bool autoPumpStateChange = false;
 bool autoMistStateChange = false;
+bool prevLightOn = false, prevMistSprayOn = false, prevPumpOn = false;
 volatile bool touchDetected = false;
 bool prevAutoPumpOn = false;
 bool prevAutoMistSprayOn = false;
@@ -206,6 +209,7 @@ void drawIcon(int x, int y, int height, int width, const uint16_t *icon) {
       }
     }
   }
+  delay(100);
 }
 
 
@@ -231,9 +235,9 @@ void manualPumpControlHandlingFunct()
   autoPumpOn = false;
   manualPumpControlHandling = true;
   pumpOn = !pumpOn;
+  prevPumpOn = pumpOn;
   digitalWrite(PUMP_PIN, pumpOn ? LOW : HIGH);
   pumpStateInterface();
-  delay(2000);
 }
 
 void mistStateInterface()
@@ -249,6 +253,7 @@ void manualMistSprayControlHandlingFunct()
   manualMistSprayControlHandling = true;
   mistSprayOn = !mistSprayOn;
   mistSprayOnChange = true;
+  prevMistSprayOn = mistSprayOn;
   digitalWrite(MIST_PIN, mistSprayOn ? LOW : HIGH);
   mistStateInterface();
 }
@@ -286,6 +291,7 @@ void manualLightControlHandlingFunct()
   manualLightControlHandling = true;
   lightOn = !lightOn;
   lightOnChange = true;
+  prevLightOn = lightOn;
   digitalWrite(LIGHT_PIN, lightOn ? LOW : HIGH);
   lightStateInterface();
 }
@@ -317,6 +323,8 @@ void readHumidity() {
         digitalWrite(MIST_PIN, HIGH);
         mistStateInterface();
       }
+      prevMistSprayOn = mistSprayOn;
+      readACS();
     }
 }
 
@@ -331,7 +339,6 @@ void readWaterLevel() {
         pumpOn = true;
         digitalWrite(PUMP_PIN, LOW);
         pumpStateInterface();
-        delay(2000);
       }
       else if ((prevWaterLevel >= 2.3))
       {
@@ -339,8 +346,9 @@ void readWaterLevel() {
         pumpOn = false;
         digitalWrite(PUMP_PIN, HIGH);
         pumpStateInterface(); 
-        delay(2000);
       }
+      prevPumpOn = pumpOn;
+      readACS();
     }
 
 }
@@ -357,8 +365,10 @@ void readLightDetect() {
     {
       lightOn = light_detect ? false : true;
       lightOnChange = true;
+      prevLightOn = lightOn;
       digitalWrite(LIGHT_PIN, lightOn ? LOW : HIGH);
       lightStateInterface();
+      readACS();
     }
 }
 
@@ -378,24 +388,47 @@ void readAutoLight()
   delay(1);
   drawIcon(390, 130, 45, 45, autoLightOn ? switch_on_icon : switch_off_icon);
 }
+String createControlJson() {
+  String jsonData = "{";
+  jsonData += "\"auto_LIGHT\":" + String(autoLightOn ? "true" : "false") + ",";
+  jsonData += "\"auto_MIST\":" + String(autoMistSprayOn ? "true" : "false") + ",";
+  jsonData += "\"auto_PUMP\":" + String(autoPumpOn ? "true" : "false") + ",";
+  jsonData += "\"light\":" + String(lightOn ? "true" : "false") + ",";
+  jsonData += "\"mistSpray\":" + String(mistSprayOn ? "true" : "false") + ",";
+  jsonData += "\"pump\":" + String(pumpOn ? "true" : "false");
+  jsonData += "}";
+  return jsonData;
+}
 
 void updateSensorValue(float newValue, float& prevValue, const char* label, int x, int y) {
   tft.fillRect(x, y, 150, 20, TFT_BACKGROUND);
+  delay(5);
   tft.setTextColor(DEFAULT_TXT_COLOR);
+  delay(5);
   tft.setCursor(x, y);
+  delay(5);
   tft.print(label);
+  delay(5);
   tft.setTextColor(DETAIL_TXT_COLOR);
+  delay(5);
   tft.println(newValue);
+  delay(5);
   prevValue = newValue;
 }
 
 void updateBoolSensorValue(bool newValue, bool& prevValue, const char* label, int x, int y) {
     tft.setTextColor(DEFAULT_TXT_COLOR);
+    delay(5);
     tft.fillRect(x, y, 100, 20, TFT_BACKGROUND);
+    delay(5);
     tft.setCursor(x, y);
+    delay(5);
     tft.print(label);
+    delay(5);
     tft.setTextColor(DETAIL_TXT_COLOR);
+    delay(5);
     tft.println(newValue ? "True" : "False");
+    delay(5);
     prevValue = newValue;
 }
 
@@ -415,7 +448,7 @@ void fetchSensor_Task(void *pvParameters)
       readPHValue();
       //WiFi.begin(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str());
     }
-    vTaskDelay(8000 / portTICK_PERIOD_MS); 
+    vTaskDelay(5000 / portTICK_PERIOD_MS); 
   }
 }
 void drawWifiIcon()
@@ -439,6 +472,7 @@ void drawWifiIcon()
 
 void  fetchFirebase_Task(void *pvParameters)
 {
+  delay(2000);
   while (1)
   { 
     if (millis() - lastCheckWifi > checkWifiInterval) {
@@ -448,7 +482,81 @@ void  fetchFirebase_Task(void *pvParameters)
 
     if (prev_wifiState)
     {
-      if (lightOnChange)
+      if (touchOK)
+      {
+        String jsonData = createControlJson();
+        int result = Firebase.setJson("/controls", jsonData);
+        if (result == 200) {
+          Serial.println("Control states updated successfully.");
+        } else {
+          Serial.print("Failed to update control states. Error code: ");
+          Serial.println(result);
+        }
+        touchOK = false;
+      }
+      else
+      {
+        String json = Firebase.getJson("/controls");
+        Serial.println(json);
+        if (json.length() > 0) {
+        const size_t capacity = JSON_OBJECT_SIZE(10) + 200; 
+        DynamicJsonDocument doc(capacity);
+        DeserializationError error = deserializeJson(doc, json);
+        if (error) {
+          Serial.print(F("JSON deserialization failed: "));
+          Serial.println(error.c_str());
+        }
+        else
+        {
+          autoPumpOn = doc["auto_PUMP"];
+          autoLightOn = doc["auto_LIGHT"];
+          autoMistSprayOn = doc["auto_MIST"];
+          lightOn = doc["light"];
+          mistSprayOn = doc["mistSpray"];
+          pumpOn = doc["pump"];
+          if (lightOn != prevLightOn) {
+            digitalWrite(LIGHT_PIN, lightOn ? LOW : HIGH);
+            Serial.printf("Light state updated: %s\n", lightOn ? "ON" : "OFF");
+            lightStateInterface();
+            prevLightOn = lightOn;
+          }
+
+          if (mistSprayOn != prevMistSprayOn) {
+            digitalWrite(MIST_PIN, mistSprayOn ? LOW : HIGH);
+            Serial.printf("Mist Spray state updated: %s\n", mistSprayOn ? "ON" : "OFF");
+            mistStateInterface();
+            prevMistSprayOn = mistSprayOn;
+          }
+
+          if (pumpOn != prevPumpOn) {
+            digitalWrite(PUMP_PIN, pumpOn ? LOW : HIGH);
+            Serial.printf("Pump state updated: %s\n", pumpOn ? "ON" : "OFF");
+            pumpStateInterface();
+            prevPumpOn = pumpOn;
+          }
+
+          if (autoPumpOn != prevAutoPumpOn) {
+            readAutoPump();
+            prevAutoPumpOn = autoPumpOn;
+          }
+
+          if (autoLightOn != prevAutoLightOn) {
+            readAutoLight();
+            prevAutoLightOn = autoLightOn;
+          }
+
+          if (autoMistSprayOn != prevAutoMistSprayOn) {
+            readAutoMist();
+            prevAutoMistSprayOn = autoMistSprayOn;
+          }
+        }
+      } 
+      else {
+        Serial.println("Failed to get JSON from Firebase.");
+      }
+     }
+    }
+      /*if (lightOnChange)
       {
         Serial.println("Set bool light");
         Firebase.setBool("/controls/light", lightOn);
@@ -465,6 +573,7 @@ void  fetchFirebase_Task(void *pvParameters)
           lightStateInterface();
         }
       }
+      Firebase.setFloat("/sensors/ledConsumption", currentLedValue);
       if (mistSprayOnChange)
       {
         Serial.println("Set bool mist spray");
@@ -482,6 +591,7 @@ void  fetchFirebase_Task(void *pvParameters)
           mistStateInterface();
         }
       }
+      Firebase.setFloat("/sensors/mistConsumption", currentMistValue);
       if (pumpOnChange)
       {
         Serial.println("Set bool pump");
@@ -500,7 +610,8 @@ void  fetchFirebase_Task(void *pvParameters)
           Serial.println(pumpState? "TRUE" : "FALSE");
         }
       }
-      if (autoPumpStateChange)
+      Firebase.setFloat("/sensors/pumpConsumption", currentPumpValue);
+      if (autoPumpStateChange || pumpOnChange)
       {
         Serial.println("Set bool auto pump");
         Firebase.setBool("/controls/auto_PUMP", autoPumpOn);
@@ -516,7 +627,7 @@ void  fetchFirebase_Task(void *pvParameters)
           prevAutoPumpOn = autoPumpOn;
         }
       }
-      if (autoLightStateChange)
+      if (autoLightStateChange || lightOnChange)
       {
         Serial.println("Set bool auto light");
         Firebase.setBool("/controls/auto_LIGHT", autoLightOn);
@@ -532,7 +643,7 @@ void  fetchFirebase_Task(void *pvParameters)
           prevAutoLightOn = autoLightOn;
         }
       }
-      if (autoMistStateChange)
+      if (autoMistStateChange || mistSprayOnChange)
       {
         Serial.println("Set bool auto mist spray");
         Firebase.setBool("/controls/auto_MIST", autoMistSprayOn);
@@ -547,7 +658,7 @@ void  fetchFirebase_Task(void *pvParameters)
           readAutoMist();
           prevAutoMistSprayOn = autoMistSprayOn;
         }
-      }
+      }*/
 
       switch (processFirebase)
       {
@@ -575,11 +686,11 @@ void  fetchFirebase_Task(void *pvParameters)
       }
     }
     vTaskDelay(100 / portTICK_PERIOD_MS);
-  }
 }
 
 
 void checkTouch_Task(void *pvParameters) {
+  delay(1000);
   while (true) {
     ts.read();  
 
@@ -600,38 +711,44 @@ void checkTouch_Task(void *pvParameters) {
         Serial.print(cor_y);
         Serial.println(")");
         if (isIconTouched(cor_x, cor_y, 90, 130, 45, 45))
-        {
+        {          
+          touchOK = true;
           //readAutoPump();
           Serial.println("Entering auto control pump");
-          autoPumpStateChange = true;
+          //autoPumpStateChange = true;
           controlPumpFromTouch();
         }
         else if (isIconTouched(cor_x, cor_y, 90, 180, 45, 45))
         {
-          pumpOnChange = true;
+          touchOK = true;
+          //pumpOnChange = true;
           Serial.println(("Control pump!"));
           manualPumpControlHandlingFunct();
           //autoPumpStateChange = true;
         }
         else if (isIconTouched(cor_x, cor_y, 240, 130, 45, 45))
         {
+          touchOK = true;
           Serial.println("Manual mist spray");
           controlMistSprayFromTouch();
         }
         else if (isIconTouched(cor_x, cor_y, 240, 180, 45, 45))
         {
-          mistSprayOnChange = true;
+          touchOK = true;
+          //mistSprayOnChange = true;
           Serial.println("Control mist spray");
           manualMistSprayControlHandlingFunct();
         }
         else if (isIconTouched(cor_x, cor_y, 390, 130, 45, 45))
         {
+          touchOK = true;
           Serial.println("Control Light");
           controlLedFromTouch();
         }
         else if (isIconTouched(cor_x, cor_y, 390, 180, 45, 45))
         {
-          lightOnChange = true;
+          touchOK = true;
+          //lightOnChange = true;
           Serial.println("Manual light control");
           manualLightControlHandlingFunct();
         }
@@ -641,6 +758,7 @@ void checkTouch_Task(void *pvParameters) {
         }
         isTouching = false;
         touchDetected = false;
+        readACS();
         vTaskResume(xfetchStateTaskHandle);
       }
     }
@@ -821,13 +939,19 @@ void setup() {
   { 
     autoPumpOn = Firebase.getBool("/controls/auto_PUMP");
     prevAutoPumpOn = autoPumpOn;
+    tft.print("autoPump Done...");
     autoLightOn = Firebase.getBool("/controls/auto_LIGHT");
     prevAutoLightOn = autoLightOn;
+    tft.print("autoLight Done...");
     autoMistSprayOn = Firebase.getBool("/controls/auto_MIST");
     prevAutoMistSprayOn = autoMistSprayOn;
+    tft.print("autoMistSpr Done...");
     lightOn = Firebase.getBool("/controls/light");
+    tft.print("light Done...");
     pumpOn = Firebase.getBool("/controls/pump");
+    tft.print("pump Done...");
     mistSprayOn = Firebase.getBool("/controls/mistSpray");
+    tft.print("mistSpray Done...");
   }
   tft.println("Done!");
   tft.println();
@@ -843,14 +967,17 @@ void setup() {
   currentREGULAR.calibrateOffset();
   tft.println("Done!");
   tft.println();
-  tft.print("Setting Up IO...");
-  pinMode(PUMP_PIN, OUTPUT);
-  pinMode(LIGHT_PIN, OUTPUT);
-  pinMode(MIST_PIN, OUTPUT);
-  delay(100);
-  tft.println("Done!");
   tft.println();
   delay(100);
+  tft.print("Setting Up IO...");
+  pinMode(PUMP_PIN, OUTPUT);
+  digitalWrite(PUMP_PIN, HIGH);
+  pinMode(LIGHT_PIN, OUTPUT);
+  digitalWrite(LIGHT_PIN, HIGH);
+  pinMode(MIST_PIN, OUTPUT);
+  digitalWrite(MIST_PIN, HIGH);
+  delay(100);
+  tft.println("Done!");
   tft.print("Initializing the Graphic...");
   delay(1000);
   tft.fillScreen(TFT_BACKGROUND);
@@ -867,9 +994,12 @@ void setup() {
   readAutoMist();
   lightStateInterface();
   pumpStateInterface();
+  drawWifiIcon();
   digitalWrite(PUMP_PIN, pumpOn ? LOW : HIGH);
   digitalWrite(LIGHT_PIN, lightOn ? LOW : HIGH);
   digitalWrite(MIST_PIN, mistSprayOn ? LOW : HIGH);
+  readACS();
+  delay(100);
   BaseType_t result1 = xTaskCreatePinnedToCore(
     fetchSensor_Task,       
     "fetchSensorState",          
@@ -877,7 +1007,7 @@ void setup() {
     NULL,                    
     1,                       
     &xfetchSensorTaskHandle,     
-    0                        
+    1                        
   );
   if (result1 == pdPASS) {
     Serial.println("Task 1 created successfully.");
@@ -892,7 +1022,7 @@ void setup() {
     NULL,                   
     2,                        
     &xfetchStateTaskHandle,      
-    1                      
+    0                      
   );
   if (result2 == pdPASS) {
     Serial.println("Task 2 created successfully.");

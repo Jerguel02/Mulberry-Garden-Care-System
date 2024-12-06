@@ -13,7 +13,7 @@ int ACS712::readAverageADC(int numSamples) {
     long sum = 0;
     for (int i = 0; i < numSamples; i++) {
         sum += analogRead(_pin);
-        delay(10);
+        delay(3);
     }
     return sum / numSamples;
 }
@@ -24,5 +24,5 @@ float ACS712::readCurrent() {
     Serial.println(adcValue);
     int adjustedValue = adcValue - _offsetValue;
     float voltage = (adjustedValue * _vref) / _adcMax;
-    return (abs(voltage / _sensitivity) >= 0.35) ? abs(voltage / _sensitivity) : 0;
+    return (abs(voltage / _sensitivity) >= 0.55) ? abs(voltage / _sensitivity) : 0;
 }
