@@ -372,7 +372,7 @@ function displayWeather(hourData) {
   `;
   update(ref(db, `forecast`), {
     time: hourData.datetime,
-    temp_humid: hourData.temp + "°C/" + hourData.humidity + "%",
+    temp_humid: hourData.temp + " Cel/" + hourData.humidity + " %",
     weather: hourData.conditions,
   }).catch((error) => console.error("Lỗi Firebase:", error));
 }

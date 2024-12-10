@@ -13,7 +13,7 @@ int ACS712::readAverageADC(int numSamples) {
     long sum = 0;
     for (int i = 0; i < numSamples; i++) {
         sum += analogRead(_pin);
-        delay(3);
+        delay(1);
     }
     return sum / numSamples;
 }
